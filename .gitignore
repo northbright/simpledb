@@ -1,0 +1,7 @@
+*
+!.gitignore
+!LICENSE
+!*.md
+!*.yml
+!*.go
+!*.json
