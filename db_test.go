@@ -23,9 +23,9 @@ func ExampleDB_Create() {
 	id, err := db.Create(c, data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.Create() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.Create() ok: id: %v\n", id)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.Create() ok: id: %v\n", id)
 
 	// Output:
 }
@@ -52,9 +52,9 @@ func ExampleDB_BatchCreate() {
 	ids, err := db.BatchCreate(c, data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.BatchCreate() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.BatchCreate() ok: id: %v\n", ids)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.BatchCreate() ok: id: %v\n", ids)
 
 	// Output:
 }
@@ -74,17 +74,17 @@ func ExampleDB_Search() {
 	ids, err = db.Search(c, `*"name":"Frank*"*`)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
 
 	// Search name matches UTF8 string.
 	ids, err = db.Search(c, `*"name":"王*宝"*`)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
 
 	// Test BatchGet()
 	dataMap, err := db.BatchGet(c, ids)
@@ -101,17 +101,17 @@ func ExampleDB_Search() {
 	ids, err = db.Search(c, `*"tel":"13800138003"*`)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
 
 	// Search name matches Frank* and tel matches 13800138000.
 	ids, err = db.Search(c, `*"name":"Frank*"*"tel":"13800138000"*`)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-	} else {
-		fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+		return
 	}
+	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
 
 	// Output:
 }
