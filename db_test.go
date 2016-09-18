@@ -123,14 +123,6 @@ func ExampleDB_Search() {
 	db := simpledb.Open("student")
 	ids := []string{}
 
-	// Search name matches Frank*
-	ids, err = db.Search(c, `*"name":"Frank*"*`)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-		return
-	}
-	fmt.Fprintf(os.Stderr, "db.Search() ok: ids: %v\n", ids)
-
 	// Search name matches UTF8 string.
 	ids, err = db.Search(c, `*"name":"王*宝"*`)
 	if err != nil {
@@ -150,14 +142,6 @@ func ExampleDB_Search() {
 		fmt.Fprintf(os.Stderr, "id: %v, data: %v\n", k, v)
 	}
 
-	// Search tel matches 13800138003
-	ids, err = db.Search(c, `*"tel":"13800138003"*`)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
-		return
-	}
-	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
-
 	// Search name matches Frank* and tel matches 13800138000.
 	ids, err = db.Search(c, `*"name":"Frank*"*"tel":"13800138000"*`)
 	if err != nil {
@@ -165,6 +149,17 @@ func ExampleDB_Search() {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+
+	// Test BatchGet()
+	dataMap, err = db.BatchGet(c, ids)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.BatchGet() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "db.BatchGet() ok.\n")
+	for k, v := range dataMap {
+		fmt.Fprintf(os.Stderr, "id: %v, data: %v\n", k, v)
+	}
 
 	// Output:
 }
