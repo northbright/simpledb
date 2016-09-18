@@ -86,6 +86,17 @@ func ExampleDB_Search() {
 		fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
 	}
 
+	// Test BatchGet()
+	dataMap, err := db.BatchGet(c, ids)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.BatchGet() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "db.BatchGet() ok.\n")
+	for k, v := range dataMap {
+		fmt.Fprintf(os.Stderr, "id: %v, data: %v\n", k, v)
+	}
+
 	// Search tel matches 13800138003
 	ids, err = db.Search(c, `*"tel":"13800138003"*`)
 	if err != nil {

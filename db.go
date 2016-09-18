@@ -228,6 +228,21 @@ func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
 	return data, nil
 }
 
+func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, err error) {
+	dataMap = make(map[string]string)
+	data := ""
+
+	for _, id := range ids {
+		data, err = db.Get(c, id)
+		if err != nil {
+			debugPrintf("BatchGet(): db.Get() error: %v\n", err)
+			return dataMap, err
+		}
+		dataMap[id] = data
+	}
+	return dataMap, nil
+}
+
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	if len(pattern) == 0 {
 		err = errors.New("Empty pattern.")
