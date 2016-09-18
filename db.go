@@ -196,20 +196,30 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	return ids, nil
 }
 
-func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
+func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey string, recordHashField uint64, err error) {
 	nId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		debugPrintf("Get(): strconv.ParseUint() error: %v\n", err)
-		return "", err
+		debugPrintf("Exists() strconv.ParseUint() error: %v\n", err)
+		return false, "", 0, err
 	}
 
 	bucketId := ComputeBucketId(nId)
-	recordHashKey, _ := db.GenHashKey(bucketId)
-	recordHashField := nId
+	recordHashKey, _ = db.GenHashKey(bucketId)
+	recordHashField = nId
 
-	exists, err := redis.Bool(c.Do("HEXISTS", recordHashKey, recordHashField))
+	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, recordHashField))
 	if err != nil {
-		debugPrintf("Get(): error: %v\n", err)
+		debugPrintf("Exists() error: %v\n", err)
+		return false, "", 0, err
+	}
+
+	return exists, recordHashKey, recordHashField, nil
+}
+
+func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
+	exists, recordHashKey, recordHashField, err := db.Exists(c, id)
+	if err != nil {
+		debugPrintf("Get(): db.Exists() error: %v\n", err)
 		return "", err
 	}
 

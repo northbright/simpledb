@@ -59,6 +59,27 @@ func ExampleDB_BatchCreate() {
 	// Output:
 }
 
+func ExampleDB_Exists() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+
+	id := "1"
+	exists, recordHashKey, recordHashField, err := db.Exists(c, id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Exists() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "Exists() ok: exists: %v, recordHashKey: %v, recordHashField: %v\n", exists, recordHashKey, recordHashField)
+
+	// Output:
+}
+
 func ExampleDB_Get() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
