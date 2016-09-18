@@ -181,6 +181,20 @@ func (db *DB) Create(c redis.Conn, jsonData string) (id uint64, err error) {
 	return id, nil
 }
 
+func (db *DB) BatchCreate(c redis.Conn, jsonDataArr []string) (ids []uint64, err error) {
+	ids = []uint64{}
+	var id uint64 = 0
+
+	for _, v := range jsonDataArr {
+		if id, err = db.Create(c, v); err != nil {
+			debugPrintf("BatchCreate(): error: %v\n", err)
+			return ids, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	if len(pattern) == 0 {
 		err = errors.New("Empty pattern.")
