@@ -80,6 +80,38 @@ func ExampleDB_Get() {
 	// Output:
 }
 
+func ExampleDB_BatchGet() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+	ids := []string{}
+
+	// Search name matches Frank*
+	ids, err = db.Search(c, `*"name":"Frank*"*`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "db.Search() ok: ids: %v\n", ids)
+
+	dataMap, err := db.BatchGet(c, ids)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.BatchGet() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "db.BatchGet() ok.\n")
+	for id, data := range dataMap {
+		fmt.Fprintf(os.Stderr, "id: %v, data: %v\n", id, data)
+	}
+
+	// Output:
+}
+
 func ExampleDB_Search() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
