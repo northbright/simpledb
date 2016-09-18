@@ -59,6 +59,27 @@ func ExampleDB_BatchCreate() {
 	// Output:
 }
 
+func ExampleDB_Get() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+
+	id := "1"
+	data, err := db.Get(c, id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.Get() error: %v\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "db.Get() ok. id: %v, data: %v\n", id, data)
+
+	// Output:
+}
+
 func ExampleDB_Search() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -76,7 +97,7 @@ func ExampleDB_Search() {
 		fmt.Fprintf(os.Stderr, "db.Search() error: %v\n", err)
 		return
 	}
-	fmt.Fprintf(os.Stderr, "db.Search) ok: ids: %v\n", ids)
+	fmt.Fprintf(os.Stderr, "db.Search() ok: ids: %v\n", ids)
 
 	// Search name matches UTF8 string.
 	ids, err = db.Search(c, `*"name":"王*宝"*`)
