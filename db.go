@@ -108,31 +108,31 @@ func (db *DB) FindIndexHashKey(c redis.Conn, data string) (indexHashKey string, 
 	return "", nil
 }
 
-func (db *DB) Create(c redis.Conn, data string) (id uint64, err error) {
+func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 	// 1. Check json data.
 	if len(data) == 0 {
 		err = errors.New("Empty data.")
 		debugPrintf("Create() error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
 	// 2. Get max id and compute current id.
 	maxId, err := db.GetMaxId(c)
 	if err != nil {
 		debugPrintf("Create() error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
-	id = maxId + 1
+	nId := maxId + 1
 
 	// 3. Compute current bucket id.
 	//    Increase max bucket id if current bucket id > max bucket id.
-	bucketId := ComputeBucketId(id)
+	bucketId := ComputeBucketId(nId)
 
 	maxBucketId, err := db.GetMaxBucketId(c)
 	if err != nil {
 		debugPrintf("Create() error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
 	if bucketId > maxBucketId {
@@ -140,7 +140,7 @@ func (db *DB) Create(c redis.Conn, data string) (id uint64, err error) {
 		_, err := c.Do("INCR", k)
 		if err != nil {
 			debugPrintf("Create() error: %v\n", err)
-			return 0, err
+			return "", err
 		}
 	}
 
@@ -151,39 +151,40 @@ func (db *DB) Create(c redis.Conn, data string) (id uint64, err error) {
 	oldIndexHashKey, err := db.FindIndexHashKey(c, data)
 	if err != nil {
 		debugPrintf("Create(): error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
 	// Index already exists, it means the record also exists.
 	if oldIndexHashKey != "" {
 		err = errors.New("JSON data already exists.")
 		debugPrintf("Create(): error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
 	// 6. Create record and index
-	recordHashField := id
+	recordHashField := nId
 	indexHashField := data
 	maxIdKey := db.GenMaxIdKey()
 
 	c.Send("MULTI")
 	c.Send("HSET", recordHashKey, recordHashField, data)
-	c.Send("HSET", indexHashKey, indexHashField, id)
+	c.Send("HSET", indexHashKey, indexHashField, nId)
 	c.Send("INCR", maxIdKey)
 	ret, err := c.Do("EXEC")
 	if err != nil {
 		debugPrintf("Create() error: %v\n", err)
-		return 0, err
+		return "", err
 	}
 
 	debugPrintf("Create(): ok: %v\n", ret)
 
+	id = strconv.FormatUint(nId, 10)
 	return id, nil
 }
 
-func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []uint64, err error) {
-	ids = []uint64{}
-	var id uint64 = 0
+func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
+	ids = []string{}
+	id := ""
 
 	for _, v := range dataArr {
 		if id, err = db.Create(c, v); err != nil {
@@ -193,6 +194,38 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []uint64, err err
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
+	nId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		debugPrintf("Get(): strconv.ParseUint() error: %v\n", err)
+		return "", err
+	}
+
+	bucketId := ComputeBucketId(nId)
+	recordHashKey, _ := db.GenHashKey(bucketId)
+	recordHashField := nId
+
+	exists, err := redis.Bool(c.Do("HEXISTS", recordHashKey, recordHashField))
+	if err != nil {
+		debugPrintf("Get(): error: %v\n", err)
+		return "", err
+	}
+
+	if !exists {
+		err = errors.New("Record filed does not exists in hash key.")
+		debugPrintf("Get(): error: %v\n", err)
+		return "", err
+	}
+
+	data, err = redis.String(c.Do("HGET", recordHashKey, recordHashField))
+	if err != nil {
+		debugPrintf("Get(): error: %v\n", err)
+		return "", err
+	}
+
+	return data, nil
 }
 
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
