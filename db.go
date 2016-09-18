@@ -83,7 +83,7 @@ func (db *DB) GenHashKey(bucketId uint64) (recordHashKey, indexHashKey string) {
 	return recordHashKey, indexHashKey
 }
 
-func (db *DB) FindIndexHashKey(c redis.Conn, jsonData string) (indexHashKey string, err error) {
+func (db *DB) FindIndexHashKey(c redis.Conn, data string) (indexHashKey string, err error) {
 	maxBucketId, err := db.GetMaxBucketId(c)
 	if err != nil {
 		debugPrintf("GetMaxBucketId() error: %v\n", err)
@@ -91,7 +91,7 @@ func (db *DB) FindIndexHashKey(c redis.Conn, jsonData string) (indexHashKey stri
 	}
 
 	indexHashKey = ""
-	indexHashField := jsonData
+	indexHashField := data
 
 	for i := maxBucketId; i >= 1; i-- {
 		_, indexHashKey = db.GenHashKey(i)
@@ -108,10 +108,10 @@ func (db *DB) FindIndexHashKey(c redis.Conn, jsonData string) (indexHashKey stri
 	return "", nil
 }
 
-func (db *DB) Create(c redis.Conn, jsonData string) (id uint64, err error) {
+func (db *DB) Create(c redis.Conn, data string) (id uint64, err error) {
 	// 1. Check json data.
-	if len(jsonData) == 0 {
-		err = errors.New("Empty jsonData.")
+	if len(data) == 0 {
+		err = errors.New("Empty data.")
 		debugPrintf("Create() error: %v\n", err)
 		return 0, err
 	}
@@ -148,7 +148,7 @@ func (db *DB) Create(c redis.Conn, jsonData string) (id uint64, err error) {
 	recordHashKey, indexHashKey := db.GenHashKey(bucketId)
 
 	// 5. Check if json data already exists.
-	oldIndexHashKey, err := db.FindIndexHashKey(c, jsonData)
+	oldIndexHashKey, err := db.FindIndexHashKey(c, data)
 	if err != nil {
 		debugPrintf("Create(): error: %v\n", err)
 		return 0, err
@@ -163,11 +163,11 @@ func (db *DB) Create(c redis.Conn, jsonData string) (id uint64, err error) {
 
 	// 6. Create record and index
 	recordHashField := id
-	indexHashField := jsonData
+	indexHashField := data
 	maxIdKey := db.GenMaxIdKey()
 
 	c.Send("MULTI")
-	c.Send("HSET", recordHashKey, recordHashField, jsonData)
+	c.Send("HSET", recordHashKey, recordHashField, data)
 	c.Send("HSET", indexHashKey, indexHashField, id)
 	c.Send("INCR", maxIdKey)
 	ret, err := c.Do("EXEC")
@@ -181,11 +181,11 @@ func (db *DB) Create(c redis.Conn, jsonData string) (id uint64, err error) {
 	return id, nil
 }
 
-func (db *DB) BatchCreate(c redis.Conn, jsonDataArr []string) (ids []uint64, err error) {
+func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []uint64, err error) {
 	ids = []uint64{}
 	var id uint64 = 0
 
-	for _, v := range jsonDataArr {
+	for _, v := range dataArr {
 		if id, err = db.Create(c, v); err != nil {
 			debugPrintf("BatchCreate(): error: %v\n", err)
 			return ids, err
