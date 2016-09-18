@@ -83,29 +83,29 @@ func (db *DB) GenHashKey(bucketId uint64) (recordHashKey, indexHashKey string) {
 	return recordHashKey, indexHashKey
 }
 
-func (db *DB) FindIndexHashKey(c redis.Conn, data string) (indexHashKey string, err error) {
+func (db *DB) IndexExists(c redis.Conn, data string) (exists bool, err error) {
 	maxBucketId, err := db.GetMaxBucketId(c)
 	if err != nil {
 		debugPrintf("GetMaxBucketId() error: %v\n", err)
-		return "", err
+		return false, err
 	}
 
-	indexHashKey = ""
+	indexHashKey := ""
 	indexHashField := data
 
 	for i := maxBucketId; i >= 1; i-- {
 		_, indexHashKey = db.GenHashKey(i)
 		exists, err := redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
 		if err != nil {
-			debugPrintf("FindIndexHashKey() error: %v\n", err)
-			return "", err
+			debugPrintf("IndexExists() error: %v\n", err)
+			return false, err
 		}
 
 		if exists {
-			return indexHashKey, nil
+			return true, nil
 		}
 	}
-	return "", nil
+	return false, nil
 }
 
 func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
@@ -147,16 +147,16 @@ func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 	// 4. Generate hash key for record and index.
 	recordHashKey, indexHashKey := db.GenHashKey(bucketId)
 
-	// 5. Check if json data already exists.
-	oldIndexHashKey, err := db.FindIndexHashKey(c, data)
+	// 5. Check if data already exists.
+	exists, err := db.IndexExists(c, data)
 	if err != nil {
 		debugPrintf("Create(): error: %v\n", err)
 		return "", err
 	}
 
 	// Index already exists, it means the record also exists.
-	if oldIndexHashKey != "" {
-		err = errors.New("JSON data already exists.")
+	if exists {
+		err = errors.New("Data already exists.")
 		debugPrintf("Create(): error: %v\n", err)
 		return "", err
 	}
@@ -196,28 +196,28 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	return ids, nil
 }
 
-func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey string, recordHashField uint64, err error) {
+func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey, indexHashKey string, recordHashField uint64, err error) {
 	nId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		debugPrintf("Exists() strconv.ParseUint() error: %v\n", err)
-		return false, "", 0, err
+		return false, "", "", 0, err
 	}
 
 	bucketId := ComputeBucketId(nId)
-	recordHashKey, _ = db.GenHashKey(bucketId)
+	recordHashKey, indexHashKey = db.GenHashKey(bucketId)
 	recordHashField = nId
 
 	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, recordHashField))
 	if err != nil {
 		debugPrintf("Exists() error: %v\n", err)
-		return false, "", 0, err
+		return false, "", "", 0, err
 	}
 
-	return exists, recordHashKey, recordHashField, nil
+	return exists, recordHashKey, indexHashKey, recordHashField, nil
 }
 
 func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
-	exists, recordHashKey, recordHashField, err := db.Exists(c, id)
+	exists, recordHashKey, _, recordHashField, err := db.Exists(c, id)
 	if err != nil {
 		debugPrintf("Get(): db.Exists() error: %v\n", err)
 		return "", err
@@ -251,6 +251,57 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 		dataMap[id] = data
 	}
 	return dataMap, nil
+}
+
+func (db *DB) Update(c redis.Conn, id, data string) error {
+	exists, recordHashKey, indexHashKey, recordHashField, err := db.Exists(c, id)
+	if err != nil {
+		debugPrintf("Update() db.Exists() error: %v\n", err)
+		return err
+	}
+
+	if !exists {
+		err = errors.New("Record does not exist.")
+		debugPrintf("Update() error: %v\n", err)
+		return err
+	}
+
+	oldData, err := db.Get(c, id)
+	if err != nil {
+		debugPrintf("Update() db.Get() error: %v\n", err)
+		return err
+	}
+
+	oldIndexHashField := oldData
+	newIndexHashField := data
+	nId := recordHashField
+
+	// Check if data already exists.
+	exists, err = db.IndexExists(c, data)
+	if err != nil {
+		debugPrintf("Update() error: %v\n", err)
+		return err
+	}
+
+	// Index already exists, it means the there's already a record has the same value / index.
+	if exists {
+		debugPrintf("Update(): same data / index already exists. No need to update.\n")
+		return nil
+	}
+
+	c.Send("MULTI")
+	c.Send("HSET", recordHashKey, recordHashField, data)
+	c.Send("HSET", indexHashKey, newIndexHashField, nId)
+	c.Send("HDEL", indexHashKey, oldIndexHashField)
+	ret, err := c.Do("EXEC")
+	if err != nil {
+		debugPrintf("Update() error: %v\n", err)
+		return err
+	}
+
+	debugPrintf("Update() ok. ret: %v\n", ret)
+
+	return nil
 }
 
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {

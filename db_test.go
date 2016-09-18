@@ -70,12 +70,12 @@ func ExampleDB_Exists() {
 	db := simpledb.Open("student")
 
 	id := "1"
-	exists, recordHashKey, recordHashField, err := db.Exists(c, id)
+	exists, recordHashKey, indexHashKey, recordHashField, err := db.Exists(c, id)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Exists() error: %v\n", err)
 		return
 	}
-	fmt.Fprintf(os.Stderr, "Exists() ok: exists: %v, recordHashKey: %v, recordHashField: %v\n", exists, recordHashKey, recordHashField)
+	fmt.Fprintf(os.Stderr, "Exists() ok: exists: %v, recordHashKey: %v, indexHashKey: %v, recordHashField: %v\n", exists, recordHashKey, indexHashKey, recordHashField)
 
 	// Output:
 }
@@ -128,6 +128,27 @@ func ExampleDB_BatchGet() {
 	fmt.Fprintf(os.Stderr, "db.BatchGet() ok.\n")
 	for id, data := range dataMap {
 		fmt.Fprintf(os.Stderr, "id: %v, data: %v\n", id, data)
+	}
+
+	// Output:
+}
+
+func ExampleDB_Update() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+
+	// Update Frank's telephone number.
+	newData := `{"name":"Frank Xu","tel":"13600136006"}`
+	err = db.Update(c, "2", newData)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.Upate() error: %v\n", err)
+		return
 	}
 
 	// Output:
