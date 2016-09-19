@@ -285,8 +285,9 @@ func (db *DB) Update(c redis.Conn, id, data string) error {
 
 	// Index already exists, it means the there's already a record has the same value / index.
 	if exists {
-		debugPrintf("Update(): same data / index already exists. No need to update.\n")
-		return nil
+		err = errors.New("Same data / index already exists.")
+		debugPrintf("Update() error: %v\n", err)
+		return err
 	}
 
 	c.Send("MULTI")
