@@ -79,6 +79,7 @@ end:
 		debugPrintf("GetMaxBucketId() error: %v\n", err)
 		return 1, err
 	}
+
 	return maxBucketId, nil
 }
 
@@ -90,28 +91,34 @@ func (db *DB) GenHashKey(bucketId uint64) (recordHashKey, indexHashKey string) {
 }
 
 func (db *DB) IndexExists(c redis.Conn, data string) (exists bool, err error) {
+	exists = false
 	maxBucketId, err := db.GetMaxBucketId(c)
+	indexHashKey := ""
+	indexHashField := data
+
+	if err != nil {
+		goto end
+	}
+
+	for i := maxBucketId; i >= 1; i-- {
+		_, indexHashKey = db.GenHashKey(i)
+		exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
+		if err != nil {
+			goto end
+		}
+
+		if exists {
+			exists = true
+			goto end
+		}
+	}
+end:
 	if err != nil {
 		debugPrintf("GetMaxBucketId() error: %v\n", err)
 		return false, err
 	}
 
-	indexHashKey := ""
-	indexHashField := data
-
-	for i := maxBucketId; i >= 1; i-- {
-		_, indexHashKey = db.GenHashKey(i)
-		exists, err := redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
-		if err != nil {
-			debugPrintf("IndexExists() error: %v\n", err)
-			return false, err
-		}
-
-		if exists {
-			return true, nil
-		}
-	}
-	return false, nil
+	return exists, nil
 }
 
 func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
@@ -241,19 +248,25 @@ end:
 }
 
 func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey, indexHashKey string, recordHashField uint64, err error) {
-	nId, err := strconv.ParseUint(id, 10, 64)
+	var nId, bucketId uint64
+
+	nId, err = strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		debugPrintf("Exists() strconv.ParseUint() error: %v\n", err)
-		return false, "", "", 0, err
+		goto end
 	}
 
-	bucketId := ComputeBucketId(nId)
+	bucketId = ComputeBucketId(nId)
 	recordHashKey, indexHashKey = db.GenHashKey(bucketId)
 	recordHashField = nId
 
 	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, recordHashField))
 	if err != nil {
-		debugPrintf("Exists() error: %v\n", err)
+		goto end
+	}
+
+end:
+	if err != nil {
+		debugPrintf("Exists()  error: %v\n", err)
 		return false, "", "", 0, err
 	}
 
@@ -263,19 +276,22 @@ func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey, index
 func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
 	exists, recordHashKey, _, recordHashField, err := db.Exists(c, id)
 	if err != nil {
-		debugPrintf("Get(): db.Exists() error: %v\n", err)
-		return "", err
+		goto end
 	}
 
 	if !exists {
 		err = errors.New("Record filed does not exists in hash key.")
-		debugPrintf("Get(): error: %v\n", err)
-		return "", err
+		goto end
 	}
 
 	data, err = redis.String(c.Do("HGET", recordHashKey, recordHashField))
 	if err != nil {
-		debugPrintf("Get(): error: %v\n", err)
+		goto end
+	}
+
+end:
+	if err != nil {
+		debugPrintf("Get() error: %v\n", err)
 		return "", err
 	}
 
@@ -298,91 +314,94 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 }
 
 func (db *DB) Update(c redis.Conn, id, data string) error {
+	var oldData, oldIndexHashField, newIndexHashField string
+	var nId uint64 = 0
+	var ret interface{}
+
 	exists, recordHashKey, indexHashKey, recordHashField, err := db.Exists(c, id)
 	if err != nil {
-		debugPrintf("Update() db.Exists() error: %v\n", err)
-		return err
+		goto end
 	}
 
 	if !exists {
 		err = errors.New("Record does not exist.")
-		debugPrintf("Update() error: %v\n", err)
-		return err
+		goto end
 	}
 
-	oldData, err := db.Get(c, id)
+	oldData, err = db.Get(c, id)
 	if err != nil {
-		debugPrintf("Update() db.Get() error: %v\n", err)
-		return err
+		goto end
 	}
 
-	oldIndexHashField := oldData
-	newIndexHashField := data
-	nId := recordHashField
+	oldIndexHashField = oldData
+	newIndexHashField = data
+	nId = recordHashField
 
 	// Check if data already exists.
 	exists, err = db.IndexExists(c, data)
 	if err != nil {
-		debugPrintf("Update() error: %v\n", err)
-		return err
+		goto end
 	}
 
-	// Index already exists, it means the there's already a record has the same value / index.
+	// Index already exists, there's already a record has the same value / index.
 	if exists {
 		err = errors.New("Same data / index already exists.")
-		debugPrintf("Update() error: %v\n", err)
-		return err
+		goto end
 	}
 
 	c.Send("MULTI")
 	c.Send("HSET", recordHashKey, recordHashField, data)
 	c.Send("HSET", indexHashKey, newIndexHashField, nId)
 	c.Send("HDEL", indexHashKey, oldIndexHashField)
-	ret, err := c.Do("EXEC")
+	ret, err = c.Do("EXEC")
+	if err != nil {
+		goto end
+	}
+
+	debugPrintf("Update() ok. ret: %v\n", ret)
+
+end:
 	if err != nil {
 		debugPrintf("Update() error: %v\n", err)
 		return err
 	}
 
-	debugPrintf("Update() ok. ret: %v\n", ret)
-
 	return nil
 }
 
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
+	var maxBucketId, cursor uint64
+	var l int = 0
+	var v []interface{}
+	indexHashKey := ""
+	items := []string{}
+	ids = []string{}
+
 	if len(pattern) == 0 {
 		err = errors.New("Empty pattern.")
-		debugPrintf("Search() error: %v\n", err)
-		return []string{}, err
+		goto end
 	}
 
-	maxBucketId, err := db.GetMaxBucketId(c)
+	maxBucketId, err = db.GetMaxBucketId(c)
 	if err != nil {
-		debugPrintf("Search() error: %v\n", err)
-		return []string{}, err
+		goto end
 	}
-
-	indexHashKey := ""
-	ids = []string{}
-	items := []string{}
 
 	for i := maxBucketId; i >= 1; i-- {
 		_, indexHashKey = db.GenHashKey(i)
-		cursor := 0
+		cursor = 0
 		for {
-			v, err := redis.Values(c.Do("HSCAN", indexHashKey, cursor, "match", pattern))
+			v, err = redis.Values(c.Do("HSCAN", indexHashKey, cursor, "match", pattern))
 			if err != nil {
-				debugPrintf("Search(): HSCAN error: %v\n", err)
-				return []string{}, err
+				goto end
 			}
 
 			v, err = redis.Scan(v, &cursor, &items)
 			if err != nil {
-				fmt.Printf("err: %v\n", err)
-				return []string{}, err
+				goto end
 			}
 
-			l := len(items)
+			l = len(items)
 			if l > 0 && l%2 == 0 {
 				for m := 1; m < l; m += 2 {
 					ids = append(ids, items[m])
@@ -394,5 +413,11 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 			}
 		}
 	}
+end:
+	if err != nil {
+		debugPrintf("Search() error: %v\n", err)
+		return []string{}, err
+	}
+
 	return ids, nil
 }
