@@ -183,16 +183,108 @@ func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 }
 
 func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
+	var checkedData map[string]int = make(map[string]int) // key: data, value: order in dataArr.
+	var nId, maxId, bucketId, maxBucketId, recordHashField uint64
+	var recordHashKey, indexHashKey, indexHashField, maxIdKey string
+	var ret interface{}
+	err = nil
 	ids = []string{}
 	id := ""
+	ok := false
+	exists := false
+	k := ""
+	alreadySendMULTI := false
 
-	for _, v := range dataArr {
-		if id, err = db.Create(c, v); err != nil {
-			debugPrintf("BatchCreate(): error: %v\n", err)
-			return ids, err
-		}
-		ids = append(ids, id)
+	// Get max id.
+	maxId, err = db.GetMaxId(c)
+	if err != nil {
+		goto end
 	}
+
+	nId = maxId + 1
+
+	c.Send("MULTI")
+	alreadySendMULTI = true
+
+	// Check data and send command to pipeline.
+	for i, data := range dataArr {
+		// Check empty data.
+		if len(data) == 0 {
+			err = errors.New("Empty data.")
+			goto end
+		}
+
+		// Check redundant data in dataArr.
+		if _, ok = checkedData[data]; ok {
+			err = errors.New(fmt.Sprintf("Redundant data found in dataArr: %v", data))
+			goto end
+		}
+		checkedData[data] = i
+
+		// Check if data already exist in db.
+		exists, err = db.IndexExists(c, data)
+		if err != nil {
+			goto end
+		}
+
+		if exists {
+			err = errors.New(fmt.Sprintf("Data already exists in db: %v.", data))
+			goto end
+		}
+
+		// Increase Id
+		nId = maxId + uint64(i+1)
+		id = strconv.FormatUint(nId, 10)
+		// Insert to result id array
+		ids = append(ids, id)
+
+		// Compute bucket id.
+		bucketId = ComputeBucketId(nId)
+
+		maxBucketId, err = db.GetMaxBucketId(c)
+		if err != nil {
+			goto end
+		}
+
+		// Increase max bucket id if need.
+		if bucketId > maxBucketId {
+			k = db.GenMaxBucketIdKey()
+			_, err = c.Do("INCR", k)
+			if err != nil {
+				goto end
+			}
+		}
+
+		// Generate hash key for record and index.
+		recordHashKey, indexHashKey = db.GenHashKey(bucketId)
+
+		// Create record and index.
+		recordHashField = nId
+		indexHashField = data
+		maxIdKey = db.GenMaxIdKey()
+
+		c.Send("HSET", recordHashKey, recordHashField, data)
+		c.Send("HSET", indexHashKey, indexHashField, nId)
+		c.Send("INCR", maxIdKey)
+	}
+
+	// Do piplined transaction.
+	ret, err = c.Do("EXEC")
+	if err != nil {
+		goto end
+	}
+
+	debugPrintf("BatchCreate() ok. ret: %v, ids: %v\n", ret, ids)
+
+end:
+	if err != nil {
+		if alreadySendMULTI {
+			c.Do("DISCARD")
+		}
+		debugPrintf("BatchCreate() error: %v\n", err)
+		return []string{}, err
+	}
+
 	return ids, nil
 }
 
