@@ -28,15 +28,20 @@ func (db *DB) GetMaxId(c redis.Conn) (maxId uint64, err error) {
 	k := db.GenMaxIdKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
 	if err != nil {
-		debugPrintf("GenMaxId() error: %v\n", err)
-		return 0, err
+		goto end
 	}
 
 	if !exists {
-		return 0, nil
+		maxId = 0
+		goto end
 	}
 
 	maxId, err = redis.Uint64(c.Do("GET", k))
+	if err != nil {
+		goto end
+	}
+
+end:
 	if err != nil {
 		debugPrintf("GenMaxId() error: %v\n", err)
 		return 0, err
@@ -53,26 +58,27 @@ func (db *DB) GetMaxBucketId(c redis.Conn) (maxBucketId uint64, err error) {
 	k := db.GenMaxBucketIdKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
 	if err != nil {
-		debugPrintf("GetMaxBucketId() error: %v\n", err)
-		return 0, err
+		debugPrintf("XX error: %v\n", err)
+		goto end
 	}
 
 	if !exists {
-		_, err := redis.String(c.Do("SET", k, 1))
+		_, err := c.Do("SET", k, 1)
 		if err != nil {
-			debugPrintf("GetMaxBucketId() error: %v\n", err)
-			return 0, err
+			goto end
 		}
-
-		return 1, nil
 	}
 
 	maxBucketId, err = redis.Uint64(c.Do("GET", k))
 	if err != nil {
-		debugPrintf("GetMaxBucketId() error: %v\n", err)
-		return 0, err
+		goto end
 	}
 
+end:
+	if err != nil {
+		debugPrintf("GetMaxBucketId() error: %v\n", err)
+		return 1, err
+	}
 	return maxBucketId, nil
 }
 
@@ -109,104 +115,39 @@ func (db *DB) IndexExists(c redis.Conn, data string) (exists bool, err error) {
 }
 
 func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
-	// 1. Check json data.
-	if len(data) == 0 {
-		err = errors.New("Empty data.")
-		debugPrintf("Create() error: %v\n", err)
-		return "", err
+	ids := []string{}
+	ids, err = db.BatchCreate(c, []string{data})
+	if err != nil {
+		goto end
 	}
 
-	// 2. Get max id and compute current id.
-	maxId, err := db.GetMaxId(c)
+	if len(ids) != 1 {
+		err = errors.New("Count of created record != 1.")
+		goto end
+	}
+
+end:
 	if err != nil {
 		debugPrintf("Create() error: %v\n", err)
 		return "", err
 	}
 
-	nId := maxId + 1
-
-	// 3. Compute current bucket id.
-	//    Increase max bucket id if current bucket id > max bucket id.
-	bucketId := ComputeBucketId(nId)
-
-	maxBucketId, err := db.GetMaxBucketId(c)
-	if err != nil {
-		debugPrintf("Create() error: %v\n", err)
-		return "", err
-	}
-
-	if bucketId > maxBucketId {
-		k := db.GenMaxBucketIdKey()
-		_, err := c.Do("INCR", k)
-		if err != nil {
-			debugPrintf("Create() error: %v\n", err)
-			return "", err
-		}
-	}
-
-	// 4. Generate hash key for record and index.
-	recordHashKey, indexHashKey := db.GenHashKey(bucketId)
-
-	// 5. Check if data already exists.
-	exists, err := db.IndexExists(c, data)
-	if err != nil {
-		debugPrintf("Create(): error: %v\n", err)
-		return "", err
-	}
-
-	// Index already exists, it means the record also exists.
-	if exists {
-		err = errors.New("Data already exists.")
-		debugPrintf("Create(): error: %v\n", err)
-		return "", err
-	}
-
-	// 6. Create record and index
-	recordHashField := nId
-	indexHashField := data
-	maxIdKey := db.GenMaxIdKey()
-
-	c.Send("MULTI")
-	c.Send("HSET", recordHashKey, recordHashField, data)
-	c.Send("HSET", indexHashKey, indexHashField, nId)
-	c.Send("INCR", maxIdKey)
-	ret, err := c.Do("EXEC")
-	if err != nil {
-		debugPrintf("Create() error: %v\n", err)
-		return "", err
-	}
-
-	debugPrintf("Create(): ok: %v\n", ret)
-
-	id = strconv.FormatUint(nId, 10)
-	return id, nil
+	return ids[0], nil
 }
 
 func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
 	var checkedData map[string]int = make(map[string]int) // key: data, value: order in dataArr.
 	var nId, maxId, bucketId, maxBucketId, recordHashField uint64
-	var recordHashKey, indexHashKey, indexHashField, maxIdKey string
+	var maxBucketIdKey, recordHashKey, indexHashKey, indexHashField, maxIdKey string
 	var ret interface{}
 	err = nil
 	ids = []string{}
 	id := ""
 	ok := false
 	exists := false
-	k := ""
 	alreadySendMULTI := false
 
-	// Get max id.
-	maxId, err = db.GetMaxId(c)
-	if err != nil {
-		goto end
-	}
-
-	nId = maxId + 1
-
-	c.Send("MULTI")
-	alreadySendMULTI = true
-
-	// Check data and send command to pipeline.
+	// Check data.
 	for i, data := range dataArr {
 		// Check empty data.
 		if len(data) == 0 {
@@ -231,7 +172,28 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 			err = errors.New(fmt.Sprintf("Data already exists in db: %v.", data))
 			goto end
 		}
+	}
 
+	// Get max id.
+	maxId, err = db.GetMaxId(c)
+	if err != nil {
+		goto end
+	}
+
+	// Get max id key.
+	maxIdKey = db.GenMaxIdKey()
+
+	// Get max bucket id.
+	maxBucketId, err = db.GetMaxBucketId(c)
+	if err != nil {
+		goto end
+	}
+
+	// Prepare piplined transaction.
+	c.Send("MULTI")
+	alreadySendMULTI = true
+
+	for i, data := range dataArr {
 		// Increase Id
 		nId = maxId + uint64(i+1)
 		id = strconv.FormatUint(nId, 10)
@@ -241,18 +203,9 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		// Compute bucket id.
 		bucketId = ComputeBucketId(nId)
 
-		maxBucketId, err = db.GetMaxBucketId(c)
-		if err != nil {
-			goto end
-		}
-
 		// Increase max bucket id if need.
 		if bucketId > maxBucketId {
-			k = db.GenMaxBucketIdKey()
-			_, err = c.Do("INCR", k)
-			if err != nil {
-				goto end
-			}
+			c.Send("SET", maxBucketIdKey, bucketId)
 		}
 
 		// Generate hash key for record and index.
@@ -261,7 +214,6 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		// Create record and index.
 		recordHashField = nId
 		indexHashField = data
-		maxIdKey = db.GenMaxIdKey()
 
 		c.Send("HSET", recordHashKey, recordHashField, data)
 		c.Send("HSET", indexHashKey, indexHashField, nId)
