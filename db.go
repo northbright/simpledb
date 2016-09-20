@@ -90,7 +90,7 @@ func (db *DB) GenHashKey(bucketId uint64) (recordHashKey, indexHashKey string) {
 	return recordHashKey, indexHashKey
 }
 
-func (db *DB) IndexExists(c redis.Conn, data string) (exists bool, err error) {
+func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 	exists = false
 	maxBucketId, err := db.GetMaxBucketId(c)
 	indexHashKey := ""
@@ -114,7 +114,7 @@ func (db *DB) IndexExists(c redis.Conn, data string) (exists bool, err error) {
 	}
 end:
 	if err != nil {
-		debugPrintf("GetMaxBucketId() error: %v\n", err)
+		debugPrintf("Exists() error: %v\n", err)
 		return false, err
 	}
 
@@ -170,7 +170,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		checkedData[data] = i
 
 		// Check if data already exist in db.
-		exists, err = db.IndexExists(c, data)
+		exists, err = db.Exists(c, data)
 		if err != nil {
 			goto end
 		}
@@ -247,7 +247,7 @@ end:
 	return ids, nil
 }
 
-func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey, indexHashKey string, recordHashField uint64, err error) {
+func (db *DB) IdExists(c redis.Conn, id string) (exists bool, recordHashKey, indexHashKey string, recordHashField uint64, err error) {
 	var nId, bucketId uint64
 
 	nId, err = strconv.ParseUint(id, 10, 64)
@@ -266,7 +266,7 @@ func (db *DB) Exists(c redis.Conn, id string) (exists bool, recordHashKey, index
 
 end:
 	if err != nil {
-		debugPrintf("Exists()  error: %v\n", err)
+		debugPrintf("IdExists()  error: %v\n", err)
 		return false, "", "", 0, err
 	}
 
@@ -274,7 +274,7 @@ end:
 }
 
 func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
-	exists, recordHashKey, _, recordHashField, err := db.Exists(c, id)
+	exists, recordHashKey, _, recordHashField, err := db.IdExists(c, id)
 	if err != nil {
 		goto end
 	}
@@ -318,7 +318,7 @@ func (db *DB) Update(c redis.Conn, id, data string) error {
 	var nId uint64 = 0
 	var ret interface{}
 
-	exists, recordHashKey, indexHashKey, recordHashField, err := db.Exists(c, id)
+	exists, recordHashKey, indexHashKey, recordHashField, err := db.IdExists(c, id)
 	if err != nil {
 		goto end
 	}
@@ -338,7 +338,7 @@ func (db *DB) Update(c redis.Conn, id, data string) error {
 	nId = recordHashField
 
 	// Check if data already exists.
-	exists, err = db.IndexExists(c, data)
+	exists, err = db.Exists(c, data)
 	if err != nil {
 		goto end
 	}

@@ -59,7 +59,7 @@ func ExampleDB_BatchCreate() {
 	// Output:
 }
 
-func ExampleDB_Exists() {
+func ExampleDB_IdExists() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
@@ -70,12 +70,12 @@ func ExampleDB_Exists() {
 	db := simpledb.Open("student")
 
 	id := "1"
-	exists, recordHashKey, indexHashKey, recordHashField, err := db.Exists(c, id)
+	exists, recordHashKey, indexHashKey, recordHashField, err := db.IdExists(c, id)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Exists() error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "IdExists() error: %v\n", err)
 		return
 	}
-	fmt.Fprintf(os.Stderr, "Exists() ok: exists: %v, recordHashKey: %v, indexHashKey: %v, recordHashField: %v\n", exists, recordHashKey, indexHashKey, recordHashField)
+	fmt.Fprintf(os.Stderr, "IdExists() ok: exists: %v, recordHashKey: %v, indexHashKey: %v, recordHashField: %v\n", exists, recordHashKey, indexHashKey, recordHashField)
 
 	// Output:
 }
