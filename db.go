@@ -2,6 +2,7 @@ package simpledb
 
 import (
 	//"encoding/json"
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -363,6 +364,92 @@ func (db *DB) Update(c redis.Conn, id, data string) error {
 end:
 	if err != nil {
 		debugPrintf("Update() error: %v\n", err)
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
+	type updateInfo struct {
+		data              string
+		recordHashKey     string
+		recordHashField   uint64
+		indexHashKey      string
+		oldIndexHashField string
+		newIndexHashField string
+	}
+
+	var recordHashKey, indexHashKey, oldData string
+	var recordHashField uint64
+	var ret interface{}
+	exists := false
+	updateInfoMap := make(map[uint64]updateInfo)
+	alreadySendMULTI := false
+
+	// Check and input dataArr
+	for id, data := range dataMap {
+		exists, recordHashKey, indexHashKey, recordHashField, err = db.IdExists(c, id)
+		if err != nil {
+			goto end
+		}
+
+		if !exists {
+			err = errors.New(fmt.Sprintf("Id: %v does not exist.", id))
+			goto end
+		}
+
+		oldData, err = db.Get(c, id)
+		if err != nil {
+			goto end
+		}
+
+		// Check if new data equals to old data: no need to update.
+		if !bytes.Equal([]byte(data), []byte(oldData)) {
+			updateInfoMap[recordHashField] = updateInfo{
+				data:              data,
+				recordHashKey:     recordHashKey,
+				recordHashField:   recordHashField,
+				indexHashKey:      indexHashKey,
+				oldIndexHashField: oldData,
+				newIndexHashField: data}
+		}
+
+		// Check if data already exists in db(may be with another id).
+		exists, err = db.Exists(c, data)
+		if err != nil {
+			goto end
+		}
+
+		if exists {
+			err = errors.New(fmt.Sprintf("Data already exists in db: %v.", data))
+			goto end
+		}
+	}
+
+	// Prepare pipelined transaction.
+	c.Send("MULTI")
+	alreadySendMULTI = true
+
+	for nId, info := range updateInfoMap {
+		c.Send("HSET", info.recordHashKey, info.recordHashField, info.data)
+		c.Send("HSET", info.indexHashKey, info.newIndexHashField, nId)
+		c.Send("HDEL", info.indexHashKey, info.oldIndexHashField)
+	}
+
+	ret, err = c.Do("EXEC")
+	if err != nil {
+		goto end
+	}
+
+	debugPrintf("BatchUpdate() ok. ret: %v\n", ret)
+
+end:
+	if err != nil {
+		if alreadySendMULTI {
+			c.Do("DISCARD")
+		}
+		debugPrintf("BatchUpdate() error: %v\n", err)
 		return err
 	}
 

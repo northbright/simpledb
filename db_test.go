@@ -154,6 +154,29 @@ func ExampleDB_Update() {
 	// Output:
 }
 
+func ExampleDB_BatchUpdate() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+
+	m := make(map[string]string)
+	m["2"] = `{"name":"Frank Xu","tel":"13800138000"}`
+	m["3"] = `{"name":"Frank Wang","tel":"13700137000"}`
+
+	err = db.BatchUpdate(c, m)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.BatchUpate() error: %v\n", err)
+		return
+	}
+
+	// Output:
+}
+
 func ExampleDB_Search() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
