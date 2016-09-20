@@ -315,59 +315,9 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 }
 
 func (db *DB) Update(c redis.Conn, id, data string) error {
-	var oldData, oldIndexHashField, newIndexHashField string
-	var nId uint64 = 0
-	var ret interface{}
-
-	exists, recordHashKey, indexHashKey, recordHashField, err := db.IdExists(c, id)
-	if err != nil {
-		goto end
-	}
-
-	if !exists {
-		err = errors.New("Record does not exist.")
-		goto end
-	}
-
-	oldData, err = db.Get(c, id)
-	if err != nil {
-		goto end
-	}
-
-	oldIndexHashField = oldData
-	newIndexHashField = data
-	nId = recordHashField
-
-	// Check if data already exists.
-	exists, err = db.Exists(c, data)
-	if err != nil {
-		goto end
-	}
-
-	// Index already exists, there's already a record has the same value / index.
-	if exists {
-		err = errors.New("Same data / index already exists.")
-		goto end
-	}
-
-	c.Send("MULTI")
-	c.Send("HSET", recordHashKey, recordHashField, data)
-	c.Send("HSET", indexHashKey, newIndexHashField, nId)
-	c.Send("HDEL", indexHashKey, oldIndexHashField)
-	ret, err = c.Do("EXEC")
-	if err != nil {
-		goto end
-	}
-
-	debugPrintf("Update() ok. ret: %v\n", ret)
-
-end:
-	if err != nil {
-		debugPrintf("Update() error: %v\n", err)
-		return err
-	}
-
-	return nil
+	dataMap := make(map[string]string)
+	dataMap[id] = data
+	return db.BatchUpdate(c, dataMap)
 }
 
 func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
