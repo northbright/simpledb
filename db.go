@@ -191,6 +191,12 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	// Get max id key.
 	maxIdKey = db.GenMaxIdKey()
 
+	// Get max bucket id key.
+	maxBucketIdKey = db.GenMaxBucketIdKey()
+	if err != nil {
+		goto end
+	}
+
 	// Get max bucket id.
 	maxBucketId, err = db.GetMaxBucketId(c)
 	if err != nil {
