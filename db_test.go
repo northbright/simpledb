@@ -45,7 +45,7 @@ func ExampleDB_BatchCreate() {
 	dataMap := make(map[string]string)
 	ids := []string{}
 	data := []string{
-		`{"name":"Frank Xu","tel":"13800138000"}`,
+		`{"name":"Frank Xu","tel":"13700137000"}`,
 		`{"name":"Frank Wang","tel":"13600136000"}`,
 		`{"name":"张三","tel":"13800138001"}`,
 		`{"name":"李四","tel":"13800138002"}`,
@@ -308,7 +308,7 @@ func ExampleDB_Search() {
 		// Search UTF8 string.
 		`*"name":"王*宝"*`,
 		// Search name matches Frank* and tel matches 13800138000.
-		`*"name":"Frank*"*"tel":"13800138000"*`,
+		`*"name":"Frank*"*"tel":"13700137000"*`,
 	}
 
 	dataMap := make(map[string]string)
