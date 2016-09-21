@@ -228,3 +228,25 @@ func ExampleDB_Search() {
 
 	// Output:
 }
+
+func ExampleDB_BatchDelete() {
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "redis.Dial() error: %v\n", err)
+		return
+	}
+	defer c.Close()
+
+	db := simpledb.Open("student")
+
+	ids := []string{"1", "2", "3", "4", "5", "6", "7"}
+
+	err = db.BatchDelete(c, ids)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "db.BatchDelete() error: %v\n", err)
+		return
+	}
+
+	// Output:
+
+}

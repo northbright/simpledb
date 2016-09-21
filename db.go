@@ -406,6 +406,75 @@ end:
 	return nil
 }
 
+func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
+	type delInfo struct {
+		recordHashKey   string
+		recordHashField uint64
+		indexHashKey    string
+		indexHashField  string
+	}
+
+	var recordHashKey, indexHashKey, data string
+	var recordHashField uint64
+	var ret interface{}
+	delInfoMap := make(map[uint64]delInfo)
+	exists := false
+	alreadySendMULTI := false
+
+	// Check Id
+	for _, id := range ids {
+		exists, recordHashKey, indexHashKey, recordHashField, err = db.IdExists(c, id)
+		if err != nil {
+			goto end
+		}
+
+		if !exists {
+			err = errors.New(fmt.Sprintf("id:%v does not exist.", id))
+			goto end
+		}
+
+		data, err = db.Get(c, id)
+		if err != nil {
+			goto end
+		}
+
+		delInfoMap[recordHashField] = delInfo{
+			recordHashKey:   recordHashKey,
+			recordHashField: recordHashField,
+			indexHashKey:    indexHashKey,
+			indexHashField:  data,
+		}
+	}
+
+	// Prepare pipelined transaction.
+	c.Send("MULTI")
+	alreadySendMULTI = true
+
+	for _, info := range delInfoMap {
+		c.Send("HDEL", info.recordHashKey, info.recordHashField)
+		c.Send("HDEL", info.indexHashKey, info.indexHashField)
+	}
+
+	ret, err = c.Do("EXEC")
+	if err != nil {
+		goto end
+	}
+
+	debugPrintf("BatchDelete() ok. ret: %v\n", ret)
+
+end:
+	if err != nil {
+		if alreadySendMULTI {
+			c.Do("DISCARD")
+		}
+		debugPrintf("BatchDelete() error: %v\n", err)
+		return err
+	}
+
+	return nil
+
+}
+
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	var maxBucketId, cursor uint64
 	var l int = 0
