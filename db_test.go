@@ -347,6 +347,36 @@ end:
 	// Output:
 }
 
+func ExampleDB_Info() {
+	var err error
+	var db *simpledb.DB
+	infoMap := make(map[string]string)
+
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	db = simpledb.Open("student")
+
+	simpledb.DebugPrintf("\n")
+	simpledb.DebugPrintf("--------- Info() Test Begin --------\n")
+
+	infoMap, err = db.Info(c)
+	if err != nil {
+		goto end
+	}
+	simpledb.DebugPrintf("Info():\n")
+	for k, v := range infoMap {
+		simpledb.DebugPrintf("%v: %v\n", k, v)
+	}
+
+end:
+	simpledb.DebugPrintf("--------- Info() Test End --------\n")
+	// Output:
+}
+
 func ExampleDB_Delete() {
 	var err error
 	var db *simpledb.DB

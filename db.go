@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"github.com/garyburd/redigo/redis"
@@ -535,4 +536,112 @@ end:
 	}
 
 	return ids, nil
+}
+
+func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
+	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n uint64
+	var recordHashKey, indexHashKey string
+	ret := ""
+	encoding := ""
+	encodingPattern := `(ziplist|hashtable)`
+	re := regexp.MustCompile(encodingPattern)
+	allRecordBucketEncodingAreZipList := true
+	allIndexBucketEncodingAreZipList := true
+	hashTableEncodingRecordHashKeys := []string{}
+	hashTableEncodingIndexHashKeys := []string{}
+
+	infoMap = make(map[string]string)
+
+	maxId, err = db.GetMaxId(c)
+	if err != nil {
+		goto end
+	}
+	infoMap["max id"] = strconv.FormatUint(maxId, 10)
+
+	maxBucketId, err = db.GetMaxBucketId(c)
+	if err != nil {
+		goto end
+	}
+	infoMap["max bucket id"] = strconv.FormatUint(maxBucketId, 10)
+
+	for i := maxBucketId; i >= 1; i-- {
+		recordHashKey, indexHashKey = db.GenHashKey(i)
+		n, err = redis.Uint64(c.Do("HLEN", recordHashKey))
+		if err != nil {
+			goto end
+		}
+
+		if n > 0 {
+			recordBucketNum += 1
+			recordNum += n
+
+			// Check hash encoding: ziplist or hashtable.
+			ret, err = redis.String(c.Do("DEBUG", "OBJECT", recordHashKey))
+			if err != nil {
+				DebugPrintf("failed to exec debug object, %v\n.", recordHashKey)
+				goto end
+			}
+
+			encoding = re.FindString(ret)
+			if encoding == "" {
+				err = errors.New(fmt.Sprintf("Can not find encoding of %v.", recordHashKey))
+				goto end
+			}
+
+			if encoding == "hashtable" {
+				hashTableEncodingRecordHashKeys = append(hashTableEncodingRecordHashKeys, recordHashKey)
+			}
+		}
+
+		n, err = redis.Uint64(c.Do("HLEN", indexHashKey))
+		if err != nil {
+			goto end
+		}
+
+		if n > 0 {
+			indexBucketNum += 1
+			indexNum += n
+
+			// Check hash encoding: ziplist or hashtable
+			ret, err = redis.String(c.Do("DEBUG", "OBJECT", indexHashKey))
+			if err != nil {
+				goto end
+			}
+
+			encoding = re.FindString(ret)
+			if encoding == "" {
+				err = errors.New(fmt.Sprintf("Can not find encoding of %v.", recordHashKey))
+				goto end
+			}
+
+			if encoding == "hashtable" {
+				hashTableEncodingIndexHashKeys = append(hashTableEncodingIndexHashKeys, indexHashKey)
+			}
+
+		}
+	}
+
+	if len(hashTableEncodingRecordHashKeys) > 0 {
+		allRecordBucketEncodingAreZipList = false
+	}
+
+	if len(hashTableEncodingIndexHashKeys) > 0 {
+		allIndexBucketEncodingAreZipList = false
+	}
+
+	infoMap["record bucket num"] = strconv.FormatUint(recordBucketNum, 10)
+	infoMap["record num"] = strconv.FormatUint(recordNum, 10)
+	infoMap["index bucket num"] = strconv.FormatUint(indexBucketNum, 10)
+	infoMap["index num"] = strconv.FormatUint(indexNum, 10)
+	infoMap["all record bucket encoding are 'ziplist'"] = fmt.Sprintf("%v", allRecordBucketEncodingAreZipList)
+	infoMap["all index bucket encoding are 'ziplist'"] = fmt.Sprintf("%v", allIndexBucketEncodingAreZipList)
+	infoMap["hashtable encoding record hash keys"] = fmt.Sprintf("%v", hashTableEncodingRecordHashKeys)
+	infoMap["hashtable encoding index hash keys"] = fmt.Sprintf("%v", hashTableEncodingIndexHashKeys)
+
+end:
+	if err != nil {
+		DebugPrintf("Info() error: %v\n", err)
+		return make(map[string]string), err
+	}
+	return infoMap, nil
 }
