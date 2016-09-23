@@ -7,12 +7,33 @@ import (
 	"github.com/northbright/simpledb"
 )
 
+func Example_GetRedisConfigFile() {
+	var err error
+	configFile := ""
+
+	simpledb.DebugPrintf("--------- GetRedisConfigFile() Test Begin --------\n")
+
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	configFile = simpledb.GetRedisConfigFile(c)
+
+	simpledb.DebugPrintf("Redis Config File: %v\n", configFile)
+end:
+	simpledb.DebugPrintf("--------- GetRedisConfigFile() Test End --------\n")
+	// Output:
+}
+
 func ExampleDB_Create() {
 	var err error
 	var db *simpledb.DB
 	id := ""
 	data := `{"name":"Bob Smith","tel":"13500135000"}`
 
+	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Create() Test Begin --------\n")
 
 	c, err := redis.Dial("tcp", ":6379")
