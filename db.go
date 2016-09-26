@@ -13,6 +13,7 @@ import (
 
 const (
 	HashMaxZiplistEntriesKey string = "hash-max-ziplist-entries"
+	EstimatedRecordNum       uint64 = 10000000
 )
 
 var (
@@ -23,6 +24,7 @@ var (
 type DB struct {
 	Name                       string
 	redisHashMaxZiplistEntries uint64
+	estBucketNum               uint64
 }
 
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
@@ -61,6 +63,8 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 			goto end
 		}
 	}
+
+	db.estBucketNum = EstimatedRecordNum / db.redisHashMaxZiplistEntries
 end:
 	if err != nil {
 		DebugPrintf("Open(c, %v) error: %v\n", name, err)
