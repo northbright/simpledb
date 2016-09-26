@@ -165,26 +165,15 @@ func (db *DB) GenIndexHashKey(data string) string {
 
 func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 	exists = false
-	maxBucketId, err := db.GetMaxBucketId(c)
 	indexHashKey := ""
 	indexHashField := data
 
+	indexHashKey = db.GenIndexHashKey(data)
+	exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
 	if err != nil {
 		goto end
 	}
 
-	for i := maxBucketId; i >= 1; i-- {
-		_, indexHashKey = db.GenHashKey(i)
-		exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
-		if err != nil {
-			goto end
-		}
-
-		if exists {
-			exists = true
-			goto end
-		}
-	}
 end:
 	if err != nil {
 		DebugPrintf("Exists() error: %v\n", err)
