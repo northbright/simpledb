@@ -27,6 +27,29 @@ end:
 	// Output:
 }
 
+func Example_GetRedisHashMaxZiplistEntries() {
+	var err error
+	var redisHashMaxZiplistEntries uint64 = 0
+	configFile := ""
+
+	simpledb.DebugPrintf("\n")
+	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test Begin --------\n")
+
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	configFile = simpledb.GetRedisConfigFile(c)
+	redisHashMaxZiplistEntries = simpledb.GetRedisHashMaxZiplistEntries(configFile)
+
+	simpledb.DebugPrintf("Redis hash-max-ziplist-entries: %v\n", redisHashMaxZiplistEntries)
+end:
+	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test End --------\n")
+	// Output:
+}
+
 func ExampleDB_Create() {
 	var err error
 	var db *simpledb.DB

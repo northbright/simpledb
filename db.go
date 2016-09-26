@@ -11,6 +11,11 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+var (
+	DEBUG                         bool   = true
+	DefRedisHashMaxZiplistEntries uint64 = 512
+)
+
 type DB struct {
 	Name string
 }
