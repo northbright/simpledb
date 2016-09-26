@@ -30,7 +30,6 @@ end:
 func Example_GetRedisHashMaxZiplistEntries() {
 	var err error
 	var redisHashMaxZiplistEntries uint64 = 0
-	configFile := ""
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test Begin --------\n")
@@ -41,8 +40,7 @@ func Example_GetRedisHashMaxZiplistEntries() {
 	}
 	defer c.Close()
 
-	configFile = simpledb.GetRedisConfigFile(c)
-	redisHashMaxZiplistEntries = simpledb.GetRedisHashMaxZiplistEntries(configFile)
+	redisHashMaxZiplistEntries = simpledb.GetRedisHashMaxZiplistEntries(c)
 
 	simpledb.DebugPrintf("Redis hash-max-ziplist-entries: %v\n", redisHashMaxZiplistEntries)
 end:
@@ -65,7 +63,7 @@ func ExampleDB_Create() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	id, err = db.Create(c, data)
 	if err != nil {
@@ -109,7 +107,7 @@ func ExampleDB_BatchCreate() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	ids, err = db.BatchCreate(c, data)
 	if err != nil {
@@ -148,7 +146,7 @@ func ExampleDB_IdExists() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	exists, recordHashKey, indexHashKey, recordHashField, err = db.IdExists(c, id)
 	if err != nil {
@@ -176,7 +174,7 @@ func ExampleDB_Get() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Get() Test Begin --------\n")
@@ -215,7 +213,7 @@ func ExampleDB_BatchGet() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- BatchGet() Test Begin --------\n")
@@ -251,7 +249,7 @@ func ExampleDB_Update() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Update() Test Begin --------\n")
@@ -305,7 +303,7 @@ func ExampleDB_BatchUpdate() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- BatchUpdate() Test Begin --------\n")
@@ -363,7 +361,7 @@ func ExampleDB_Search() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Search() Test Begin --------\n")
@@ -402,7 +400,7 @@ func ExampleDB_Info() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Info() Test Begin --------\n")
@@ -434,7 +432,7 @@ func ExampleDB_Delete() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- Delete() Test Begin --------\n")
@@ -489,7 +487,7 @@ func ExampleDB_BatchDelete() {
 	}
 	defer c.Close()
 
-	db = simpledb.Open("student")
+	db, _ = simpledb.Open(c, "student")
 
 	simpledb.DebugPrintf("\n")
 	simpledb.DebugPrintf("--------- BatchDelete() Test Begin --------\n")

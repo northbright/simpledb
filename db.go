@@ -11,20 +11,70 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+const (
+	HashMaxZiplistEntriesKey string = "hash-max-ziplist-entries"
+)
+
 var (
 	DEBUG                         bool   = true
 	DefRedisHashMaxZiplistEntries uint64 = 512
 )
 
 type DB struct {
-	Name string
+	Name                       string
+	redisHashMaxZiplistEntries uint64
 }
 
-func Open(name string) *DB {
-	return &DB{Name: name}
+func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
+	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.Name)
+}
+
+func Open(c redis.Conn, name string) (db *DB, err error) {
+	db = &DB{Name: name}
+	exists := false
+	k := db.GenRedisHashMaxZiplistEntriesKey()
+
+	if len(name) == 0 {
+		err = errors.New("Empty db name.")
+		goto end
+	}
+
+	exists, err = redis.Bool(c.Do("EXISTS", k))
+	if err != nil {
+		goto end
+	}
+
+	// Set only once at first time.
+	if !exists {
+		db.redisHashMaxZiplistEntries = GetRedisHashMaxZiplistEntries(c)
+		if err != nil {
+			goto end
+		}
+
+		_, err = c.Do("SET", k, db.redisHashMaxZiplistEntries)
+		if err != nil {
+			goto end
+		}
+	} else {
+		db.redisHashMaxZiplistEntries, err = redis.Uint64(c.Do("GET", k))
+		if err != nil {
+			goto end
+		}
+	}
+end:
+	if err != nil {
+		DebugPrintf("Open(c, %v) error: %v\n", name, err)
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func (db *DB) Close() {
+}
+
+func (db *DB) ComputeBucketId(id uint64) uint64 {
+	return id/db.redisHashMaxZiplistEntries + 1
 }
 
 func (db *DB) GenMaxIdKey() (maxIdKey string) {
@@ -221,7 +271,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		ids = append(ids, id)
 
 		// Compute bucket id.
-		bucketId = ComputeBucketId(nId)
+		bucketId = db.ComputeBucketId(nId)
 
 		// Increase max bucket id if need.
 		if bucketId > maxBucketId {
@@ -268,7 +318,7 @@ func (db *DB) IdExists(c redis.Conn, id string) (exists bool, recordHashKey, ind
 		goto end
 	}
 
-	bucketId = ComputeBucketId(nId)
+	bucketId = db.ComputeBucketId(nId)
 	recordHashKey, indexHashKey = db.GenHashKey(bucketId)
 	recordHashField = nId
 

@@ -29,13 +29,14 @@ func GetRedisConfigFile(c redis.Conn) (configFile string) {
 	return matched[1]
 }
 
-func GetRedisHashMaxZiplistEntries(configFile string) (redisHashMaxZiplistEntries uint64) {
+func GetRedisHashMaxZiplistEntries(c redis.Conn) (redisHashMaxZiplistEntries uint64) {
 	var err error
 	var re *regexp.Regexp
 	buf := []byte{}
 	pattern := `hash-max-ziplist-entries\s(\d*)`
 	matched := []string{}
 
+	configFile := GetRedisConfigFile(c)
 	if len(configFile) == 0 {
 		err = errors.New("Redis config file name is empty.")
 		goto end
@@ -65,8 +66,4 @@ end:
 	}
 
 	return redisHashMaxZiplistEntries
-}
-
-func ComputeBucketId(id uint64) uint64 {
-	return DefRedisHashMaxZiplistEntries
 }
