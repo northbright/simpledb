@@ -685,6 +685,8 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 		allIndexBucketEncodingAreZipList = false
 	}
 
+	infoMap["db.Name"] = db.Name
+	infoMap["db.redisHashMaxZiplistEntries"] = strconv.FormatUint(db.redisHashMaxZiplistEntries, 10)
 	infoMap["record bucket num"] = strconv.FormatUint(recordBucketNum, 10)
 	infoMap["record num"] = strconv.FormatUint(recordNum, 10)
 	infoMap["index bucket num"] = strconv.FormatUint(indexBucketNum, 10)
