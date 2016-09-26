@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	//"io/ioutil"
 	"regexp"
 	"strconv"
@@ -149,6 +150,17 @@ func (db *DB) GenHashKey(bucketId uint64) (recordHashKey, indexHashKey string) {
 	recordHashKey = fmt.Sprintf("%v/bucket/%v", db.Name, bucketIdStr)
 	indexHashKey = fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketIdStr)
 	return recordHashKey, indexHashKey
+}
+
+func (db *DB) GenRecordHashKey(id uint64) string {
+	bucketId := db.ComputeBucketId(id)
+	return fmt.Sprintf("%v/bucket/%v", db.Name, bucketId)
+}
+
+func (db *DB) GenIndexHashKey(data string) string {
+	checkSum := crc32.ChecksumIEEE([]byte(data))
+	bucketId := uint64(checkSum) % db.estBucketNum
+	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketId)
 }
 
 func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
