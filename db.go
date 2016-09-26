@@ -284,7 +284,8 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		}
 
 		// Generate hash key for record and index.
-		recordHashKey, indexHashKey = db.GenHashKey(bucketId)
+		recordHashKey = db.GenRecordHashKey(nId)
+		indexHashKey = db.GenIndexHashKey(data)
 
 		// Create record and index.
 		recordHashField = nId
@@ -292,8 +293,9 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 
 		c.Send("HSET", recordHashKey, recordHashField, data)
 		c.Send("HSET", indexHashKey, indexHashField, nId)
-		c.Send("INCR", maxIdKey)
 	}
+
+	c.Send("INCRBY", maxIdKey, len(dataArr))
 
 	// Do piplined transaction.
 	ret, err = c.Do("EXEC")
