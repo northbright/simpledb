@@ -120,7 +120,6 @@ func (db *DB) GetMaxBucketId(c redis.Conn) (maxBucketId uint64, err error) {
 	k := db.GenMaxBucketIdKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
 	if err != nil {
-		DebugPrintf("XX error: %v\n", err)
 		goto end
 	}
 
