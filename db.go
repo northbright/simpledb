@@ -25,7 +25,7 @@ var (
 type DB struct {
 	Name                       string
 	redisHashMaxZiplistEntries uint64
-	estBucketNum               uint64
+	estIndexBucketNum          uint64
 }
 
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
@@ -65,7 +65,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 		}
 	}
 
-	db.estBucketNum = EstimatedRecordNum / db.redisHashMaxZiplistEntries
+	db.estIndexBucketNum = EstimatedRecordNum / db.redisHashMaxZiplistEntries
 end:
 	if err != nil {
 		DebugPrintf("Open(c, %v) error: %v\n", name, err)
@@ -151,7 +151,7 @@ func (db *DB) GenRecordHashKey(id uint64) string {
 
 func (db *DB) GenIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
-	bucketId := uint64(checkSum) % db.estBucketNum
+	bucketId := uint64(checkSum) % db.estIndexBucketNum
 	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketId)
 }
 
