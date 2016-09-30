@@ -65,7 +65,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 		}
 	}
 
-	db.estIndexBucketNum = EstimatedRecordNum / db.redisHashMaxZiplistEntries
+	db.estIndexBucketNum = EstimatedRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
 end:
 	if err != nil {
 		DebugPrintf("Open(c, %v) error: %v\n", name, err)
