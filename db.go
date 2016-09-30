@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	//"io/ioutil"
 	"regexp"
 	"strconv"
 
