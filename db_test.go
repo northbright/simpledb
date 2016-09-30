@@ -133,8 +133,6 @@ func ExampleDB_IdExists() {
 	var err error
 	var db *simpledb.DB
 	exists := false
-	var recordHashKey, indexHashKey string
-	var recordHashField uint64
 	id := "1"
 
 	simpledb.DebugPrintf("\n")
@@ -148,13 +146,12 @@ func ExampleDB_IdExists() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	exists, recordHashKey, indexHashKey, recordHashField, err = db.IdExists(c, id)
+	exists, err = db.IdExists(c, id)
 	if err != nil {
 		goto end
 	}
 
-	simpledb.DebugPrintf("IdExsits(%v) Result:\n", id)
-	simpledb.DebugPrintf("exists: %v, recordHashKey: %v, indexHashKey: %v, recordHashField: %v\n", exists, recordHashKey, indexHashKey, recordHashField)
+	simpledb.DebugPrintf("IdExsits(%v): %v\n", id, exists)
 
 end:
 	simpledb.DebugPrintf("--------- IdExists() Test End --------\n")
