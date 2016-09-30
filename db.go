@@ -630,7 +630,7 @@ end:
 
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
-	var recordHashKey, indexHashKey string
+	var recordHashKey string
 	ret := ""
 	encoding := ""
 	encodingPattern := `(ziplist|hashtable)`
@@ -685,11 +685,6 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 				hashTableEncodingRecordHashKeys = append(hashTableEncodingRecordHashKeys, recordHashKey)
 			}
 		}
-
-		n, err = redis.Uint64(c.Do("HLEN", indexHashKey))
-		if err != nil {
-			goto end
-		}
 	}
 
 	// Check index hashes' encoding
@@ -728,7 +723,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 			}
 
 			if encoding == "hashtable" {
-				hashTableEncodingIndexHashKeys = append(hashTableEncodingIndexHashKeys, indexHashKey)
+				hashTableEncodingIndexHashKeys = append(hashTableEncodingIndexHashKeys, k)
 			}
 
 		}
