@@ -749,8 +749,8 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	infoMap["index num"] = strconv.FormatUint(indexNum, 10)
 	infoMap["all record bucket encoding are 'ziplist'"] = fmt.Sprintf("%v", allRecordBucketEncodingAreZipList)
 	infoMap["all index bucket encoding are 'ziplist'"] = fmt.Sprintf("%v", allIndexBucketEncodingAreZipList)
-	infoMap["hashtable encoding record hash keys"] = fmt.Sprintf("%v", hashTableEncodingRecordHashKeys)
-	infoMap["hashtable encoding index hash keys"] = fmt.Sprintf("%v", hashTableEncodingIndexHashKeys)
+	infoMap[fmt.Sprintf("hashtable encoding record hash keys(%v)", len(hashTableEncodingRecordHashKeys))] = fmt.Sprintf("%v", hashTableEncodingRecordHashKeys)
+	infoMap[fmt.Sprintf("hashtable encoding index hash keys(%v)", len(hashTableEncodingIndexHashKeys))] = fmt.Sprintf("%v", hashTableEncodingIndexHashKeys)
 
 end:
 	if err != nil {
