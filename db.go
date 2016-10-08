@@ -657,7 +657,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 	// Check record hashes' encoding
 	for i := maxBucketId; i >= 1; i-- {
-		recordHashKey = db.GenRecordHashKey(i)
+		recordHashKey = fmt.Sprintf("%v/bucket/%v", db.Name, i)
 		n, err = redis.Uint64(c.Do("HLEN", recordHashKey))
 		if err != nil {
 			goto end
