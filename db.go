@@ -25,6 +25,7 @@ type DB struct {
 	Name                       string
 	redisHashMaxZiplistEntries uint64
 	estIndexBucketNum          uint64
+	indexHashKeyScanPattern    string
 }
 
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
@@ -65,6 +66,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 	}
 
 	db.estIndexBucketNum = EstimatedRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
+	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.Name)
 end:
 	if err != nil {
 		DebugPrintf("Open(c, %v) error: %v\n", name, err)
@@ -152,10 +154,6 @@ func (db *DB) GenIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
 	bucketId := uint64(checkSum) % db.estIndexBucketNum
 	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketId)
-}
-
-func (db *DB) GenIndexHashKeyScanPattern() string {
-	return fmt.Sprintf("%v/idx/bucket/*", db.Name)
 }
 
 func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
@@ -565,7 +563,6 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	var cursor, subCursor uint64
 	var l int = 0
 	var v []interface{}
-	indexHashKeyScanPattern := ""
 	keys := []string{}
 	items := []string{}
 	ids = []string{}
@@ -576,9 +573,8 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	}
 
 	cursor = 0
-	indexHashKeyScanPattern = db.GenIndexHashKeyScanPattern()
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", indexHashKeyScanPattern, "COUNT", 1000))
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1000))
 		if err != nil {
 			goto end
 		}
@@ -638,7 +634,6 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	allIndexBucketEncodingAreZipList := true
 	hashTableEncodingRecordHashKeys := []string{}
 	hashTableEncodingIndexHashKeys := []string{}
-	indexHashKeyScanPattern := ""
 	keys := []string{}
 	infoMap = make(map[string]string)
 	var v []interface{}
@@ -688,9 +683,8 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 	// Check index hashes' encoding
 	cursor = 0
-	indexHashKeyScanPattern = db.GenIndexHashKeyScanPattern()
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", indexHashKeyScanPattern))
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern))
 		if err != nil {
 			goto end
 		}
