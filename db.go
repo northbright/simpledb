@@ -273,11 +273,6 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		// Compute bucket id.
 		bucketId = db.ComputeBucketId(nId)
 
-		// Increase max bucket id if need.
-		if bucketId > maxBucketId {
-			c.Send("SET", maxBucketIdKey, bucketId)
-		}
-
 		// Generate hash key for record and index.
 		recordHashKey = db.GenRecordHashKey(nId)
 		indexHashKey = db.GenIndexHashKey(data)
@@ -288,6 +283,11 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 
 		c.Send("HSET", recordHashKey, recordHashField, data)
 		c.Send("HSET", indexHashKey, indexHashField, nId)
+	}
+
+	// Increase max bucket id if need.
+	if bucketId > maxBucketId {
+		c.Send("SET", maxBucketIdKey, bucketId)
 	}
 
 	c.Send("INCRBY", maxIdKey, len(dataArr))
