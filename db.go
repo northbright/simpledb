@@ -643,7 +643,7 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1000))
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
 		if err != nil {
 			goto end
 		}
@@ -656,7 +656,7 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 		for _, k := range keys {
 			subCursor = 0
 			for {
-				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1000))
+				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1024))
 				if err != nil {
 					goto end
 				}
@@ -761,7 +761,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	// Check index hashes' encoding
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern))
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
 		if err != nil {
 			goto end
 		}
