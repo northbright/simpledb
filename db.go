@@ -598,7 +598,12 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 				}
 
 				l = len(items)
-				if l > 0 && l%2 == 0 {
+				if l > 0 {
+					if l%2 != 0 {
+						errors.New("Search() error: HSCAN result error.")
+						goto end
+					}
+
 					for m := 1; m < l; m += 2 {
 						ids = append(ids, items[m])
 					}
