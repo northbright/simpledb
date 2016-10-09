@@ -628,6 +628,78 @@ end:
 	return ids, nil
 }
 
+func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err error) {
+	var cursor, subCursor uint64
+	var l int = 0
+	var v []interface{}
+	keys := []string{}
+	items := []string{}
+	reArr := []*regexp.Regexp{}
+
+	for _, p := range patterns {
+		reArr = append(reArr, regexp.MustCompile(p))
+		ids = append(ids, []string{})
+	}
+
+	cursor = 0
+	for {
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1000))
+		if err != nil {
+			goto end
+		}
+
+		v, err = redis.Scan(v, &cursor, &keys)
+		if err != nil {
+			goto end
+		}
+
+		for _, k := range keys {
+			subCursor = 0
+			for {
+				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1000))
+				if err != nil {
+					goto end
+				}
+
+				v, err = redis.Scan(v, &subCursor, &items)
+				if err != nil {
+					goto end
+				}
+
+				l = len(items)
+				if l > 0 {
+					if l%2 != 0 {
+						errors.New("Search() error: HSCAN result error.")
+						goto end
+					}
+
+					for m := 1; m < l; m += 2 {
+						for n, re := range reArr {
+							if re.MatchString(items[m-1]) {
+								ids[n] = append(ids[n], items[m])
+							}
+						}
+					}
+				}
+
+				if subCursor == 0 {
+					break
+				}
+			}
+		}
+
+		if cursor == 0 {
+			break
+		}
+	}
+end:
+	if err != nil {
+		DebugPrintf("Search() error: %v\n", err)
+		return [][]string{}, err
+	}
+
+	return ids, nil
+}
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
 	var recordHashKey string

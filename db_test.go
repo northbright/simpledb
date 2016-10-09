@@ -386,6 +386,53 @@ end:
 	// Output:
 }
 
+func ExampleDB_RegexpSearch() {
+	var err error
+	var db *simpledb.DB
+	ids := [][]string{}
+	patterns := []string{
+		// Search UTF8 string.
+		//`"name":"王.*宝"`,
+		`王.+宝`,
+		// Search name matches Frank* and tel matches 13800138000.
+		`"Frank.*".*"tel":"13700137000"`,
+	}
+
+	dataMap := make(map[string]string)
+
+	c, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	db, _ = simpledb.Open(c, "student")
+
+	simpledb.DebugPrintf("\n")
+	simpledb.DebugPrintf("--------- RegexpSearch() Test Begin --------\n")
+
+	ids, err = db.RegexpSearch(c, patterns)
+	if err != nil {
+		goto end
+	}
+
+	for i, p := range patterns {
+		simpledb.DebugPrintf("Regexp pattern: %v\n", p)
+		dataMap, err = db.BatchGet(c, ids[i])
+		if err != nil {
+			goto end
+		}
+
+		simpledb.DebugPrintf("Result:\n")
+		for k, v := range dataMap {
+			simpledb.DebugPrintf("id: %v, data: %v\n", k, v)
+		}
+	}
+end:
+	simpledb.DebugPrintf("--------- RegexpSearch() Test End --------\n")
+	// Output:
+}
+
 func ExampleDB_Info() {
 	var err error
 	var db *simpledb.DB
