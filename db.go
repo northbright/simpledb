@@ -700,6 +700,7 @@ end:
 
 	return ids, nil
 }
+
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
 	var recordHashKey string
