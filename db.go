@@ -13,7 +13,7 @@ import (
 
 const (
 	HashMaxZiplistEntriesKey string = "hash-max-ziplist-entries"
-	EstimatedRecordNum       uint64 = 1000000
+	EstimatedMaxRecordNum    uint64 = 1000000
 )
 
 var (
@@ -65,7 +65,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 		}
 	}
 
-	db.estIndexBucketNum = EstimatedRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
+	db.estIndexBucketNum = EstimatedMaxRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
 	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.Name)
 end:
 	if err != nil {
