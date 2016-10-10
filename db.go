@@ -573,7 +573,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1000))
+		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
 		if err != nil {
 			goto end
 		}
@@ -586,7 +586,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 		for _, k := range keys {
 			subCursor = 0
 			for {
-				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1000))
+				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1024))
 				if err != nil {
 					goto end
 				}
