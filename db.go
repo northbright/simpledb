@@ -674,7 +674,7 @@ end:
 // RegexpSearch() scans all indexes(record data) in database and use regexp patterns to find records which match the patterns.
 //
 //     Params:
-//         patterns: regexp pattern array. Ex: {`{"name":"Frank.+"}`,`{"tel":"136\d{8}"}`
+//         patterns: regexp pattern array. Ex: {`{"name":"Frank.+"}`,`{"tel":"136\d{8}"}`}
 //     Returns:
 //         ids: matched record ids map. key: pattern, value: matched record ids.
 func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err error) {
