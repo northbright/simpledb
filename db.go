@@ -12,25 +12,35 @@ import (
 )
 
 const (
+	// Estimated max record number.
 	EstimatedMaxRecordNum uint64 = 1000000
 )
 
 var (
-	DEBUG                         bool   = true
+	// Debug mode. It'll output debug messages if it's true.
+	DEBUG bool = true
+	// Default Redis "hash-max-ziplist-entries" value.
 	DefRedisHashMaxZiplistEntries uint64 = 512
 )
 
+// DB represents a record collection stored in Redis server.
 type DB struct {
-	Name                       string
+	// Database name.
+	Name string
+	// Redis "hash-max-ziplist-entries" value. It'll be initialize only once in Open().
 	redisHashMaxZiplistEntries uint64
-	estIndexBucketNum          uint64
-	indexHashKeyScanPattern    string
+	// Estimated index bucket number.
+	estIndexBucketNum uint64
+	// Index hash key scan pattern. It's used to scan index entries in Redis.
+	indexHashKeyScanPattern string
 }
 
+// GenRedisHashMaxZiplistEntriesKey() Generates the "hash-max-ziplist-entries" key for DB.
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
 	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.Name)
 }
 
+// Open() returns an DB instance by given database name.
 func Open(c redis.Conn, name string) (db *DB, err error) {
 	db = &DB{Name: name}
 	exists := false
@@ -64,7 +74,9 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 		}
 	}
 
+	// Initialize estimated index bucket number.
 	db.estIndexBucketNum = EstimatedMaxRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
+	// Initialize index hash key scan pattern.
 	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.Name)
 end:
 	if err != nil {
@@ -75,17 +87,21 @@ end:
 	return db, nil
 }
 
+// Close() closes an DB instance after use.
 func (db *DB) Close() {
 }
 
+// ComputeBucketId() returns the record bucket id by given record id.
 func (db *DB) ComputeBucketId(id uint64) uint64 {
 	return id/db.redisHashMaxZiplistEntries + 1
 }
 
+// GenMaxIdKey() generates key of max record id.
 func (db *DB) GenMaxIdKey() (maxIdKey string) {
 	return fmt.Sprintf("%v/maxid", db.Name)
 }
 
+// GetMaxId() gets max record id.
 func (db *DB) GetMaxId(c redis.Conn) (maxId uint64, err error) {
 	k := db.GenMaxIdKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
@@ -112,10 +128,12 @@ end:
 	return maxId, nil
 }
 
+// GenMaxBucketIdKey() generates the key of max record bucket id.
 func (db *DB) GenMaxBucketIdKey() (maxBucketIdKey string) {
 	return fmt.Sprintf("%v/maxbucketid", db.Name)
 }
 
+// GetMaxBucketId() gets the max record bucket id.
 func (db *DB) GetMaxBucketId(c redis.Conn) (maxBucketId uint64, err error) {
 	k := db.GenMaxBucketIdKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
@@ -144,17 +162,20 @@ end:
 	return maxBucketId, nil
 }
 
+// GenRecordHashKey() generates the record hash(bucket) key by given record id.
 func (db *DB) GenRecordHashKey(id uint64) string {
 	bucketId := db.ComputeBucketId(id)
 	return fmt.Sprintf("%v/bucket/%v", db.Name, bucketId)
 }
 
+// GenIndexHashKey() generates the index hash(bucket) key by given record data.
 func (db *DB) GenIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
 	bucketId := uint64(checkSum) % db.estIndexBucketNum
 	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketId)
 }
 
+// Exists() checks if given record exists in database.
 func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 	exists = false
 	indexHashKey := ""
@@ -175,6 +196,7 @@ end:
 	return exists, nil
 }
 
+// Create() creates a new record in database.
 func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 	ids := []string{}
 	ids, err = db.BatchCreate(c, []string{data})
@@ -196,6 +218,7 @@ end:
 	return ids[0], nil
 }
 
+// BatchCreate() creates records in database.
 func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
 	var checkedData map[string]int = make(map[string]int) // key: data, value: order in dataArr.
 	var nId, maxId, bucketId, maxBucketId, recordHashField uint64
@@ -309,6 +332,7 @@ end:
 	return ids, nil
 }
 
+// IdExists() checks if record with given record id exists in database.
 func (db *DB) IdExists(c redis.Conn, id string) (exists bool, err error) {
 	var nId uint64
 	var recordHashKey string
@@ -333,6 +357,7 @@ end:
 	return exists, nil
 }
 
+// Get() returns record data by given record id.
 func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
 	var nId uint64
 	recordHashKey := ""
@@ -357,6 +382,12 @@ end:
 	return data, nil
 }
 
+// BatchGet() returns multiple record data by given record ids.
+//
+//     Params
+//         ids: record id array.
+//     Return:
+//         dataMap: key: id, value: record data.
 func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, err error) {
 	dataMap = make(map[string]string)
 	data := ""
@@ -372,12 +403,17 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 	return dataMap, nil
 }
 
+// Update() updates the record by given id and new data.
 func (db *DB) Update(c redis.Conn, id, data string) error {
 	dataMap := make(map[string]string)
 	dataMap[id] = data
 	return db.BatchUpdate(c, dataMap)
 }
 
+// BatchUpdate() updates multiple records by given ids and new data.
+//
+//     Params:
+//         dataMap: key: id, value: new record data.
 func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 	type updateInfo struct {
 		data              string
@@ -476,10 +512,12 @@ end:
 	return nil
 }
 
+// Delete() deletes the record in database by given id.
 func (db *DB) Delete(c redis.Conn, id string) (err error) {
 	return db.BatchDelete(c, []string{id})
 }
 
+// BatchDelete() deletes multiple records in database by given ids.
 func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 	type delInfo struct {
 		recordHashKey   string
@@ -558,6 +596,12 @@ end:
 
 }
 
+// Search() scans all indexes(record data) in database and use the pattern of Redis "SCAN" command to find records which match the pattern.
+//
+//     Params:
+//         pattern: pattern of Redis "SCAN" command. Ex: `{"name":"Frank*"}*`
+//     Returns:
+//         ids: matched record ids.
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	var cursor, subCursor uint64
 	var l int = 0
@@ -627,6 +671,12 @@ end:
 	return ids, nil
 }
 
+// RegexpSearch() scans all indexes(record data) in database and use regexp patterns to find records which match the patterns.
+//
+//     Params:
+//         patterns: regexp pattern array. Ex: {`{"name":"Frank.+"}`,`{"tel":"136\d{8}"}`
+//     Returns:
+//         ids: matched record ids map. key: pattern, value: matched record ids.
 func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err error) {
 	var cursor, subCursor uint64
 	var l int = 0
@@ -700,6 +750,10 @@ end:
 	return ids, nil
 }
 
+// Info() returns the information of current DB.
+//
+//     Returns:
+//         infoMap: key: section, value: infomation.
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
 	var recordHashKey string
