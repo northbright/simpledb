@@ -346,7 +346,7 @@ func ExampleDB_Search() {
 	patterns := []string{
 		// Search UTF8 string.
 		`*"name":"王*宝"*`,
-		// Search name matches Frank* and tel matches 13800138000.
+		// Search name matches Frank* and tel matches 13700137000.
 		`*"name":"Frank*"*"tel":"13700137000"*`,
 	}
 
@@ -394,7 +394,7 @@ func ExampleDB_RegexpSearch() {
 		// Search UTF8 string.
 		//`"name":"王.*宝"`,
 		`王.+宝`,
-		// Search name matches Frank* and tel matches 13800138000.
+		// Search name matches Frank* and tel matches 13700137000.
 		`"Frank.*".*"tel":"13700137000"`,
 	}
 
