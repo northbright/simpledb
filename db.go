@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	HashMaxZiplistEntriesKey string = "hash-max-ziplist-entries"
-	EstimatedMaxRecordNum    uint64 = 1000000
+	EstimatedMaxRecordNum uint64 = 1000000
 )
 
 var (
