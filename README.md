@@ -21,8 +21,8 @@ simpledb is a [Golang](https://golang.org) package which provides CRUD and searc
     * Value of field: record id.
 
 * Search
-    * Search() scans all index buckets(hashes) and use HSCAN command with pattern of Redis(Ex: '{"name":"Frank*"}*') on record data directly to find matched record ids.
-    * RegexpSeach() scans all index buckets(hashes) and use HSCAN command to retrieve all fields and use Regexp pattern(Ex: '{"name":"Frank.+"}') on record data directly to find matched record ids.
+    * Search() scans all index buckets(hashes) and use HSCAN command with pattern of Redis(Ex: `'{"name":"Frank*"}*'`) on record data directly to find matched record ids.
+    * RegexpSeach() scans all index buckets(hashes) and use HSCAN command to retrieve all fields and use Regexp pattern(Ex: `'{"name":"Frank.+"}'`) on record data directly to find matched record ids.
 
 #### Documentation
 * [API Reference](https://godoc.org/github.com/northbright/simpledb)
