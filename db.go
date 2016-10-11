@@ -58,7 +58,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 
 	// Set db.redisHashMaxZiplistEntries only once at first time.
 	if !exists {
-		db.redisHashMaxZiplistEntries = GetRedisHashMaxZiplistEntries(c)
+		db.redisHashMaxZiplistEntries, err = GetRedisHashMaxZiplistEntries(c)
 		if err != nil {
 			goto end
 		}

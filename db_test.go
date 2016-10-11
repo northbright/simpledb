@@ -7,26 +7,6 @@ import (
 	"github.com/northbright/simpledb"
 )
 
-func Example_GetRedisConfigFile() {
-	var err error
-	configFile := ""
-
-	simpledb.DebugPrintf("--------- GetRedisConfigFile() Test Begin --------\n")
-
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
-		goto end
-	}
-	defer c.Close()
-
-	configFile = simpledb.GetRedisConfigFile(c)
-
-	simpledb.DebugPrintf("Redis Config File: %v\n", configFile)
-end:
-	simpledb.DebugPrintf("--------- GetRedisConfigFile() Test End --------\n")
-	// Output:
-}
-
 func Example_GetRedisHashMaxZiplistEntries() {
 	var err error
 	var redisHashMaxZiplistEntries uint64 = 0
@@ -40,10 +20,17 @@ func Example_GetRedisHashMaxZiplistEntries() {
 	}
 	defer c.Close()
 
-	redisHashMaxZiplistEntries = simpledb.GetRedisHashMaxZiplistEntries(c)
+	redisHashMaxZiplistEntries, err = simpledb.GetRedisHashMaxZiplistEntries(c)
+	if err != nil {
+		goto end
+	}
 
 	simpledb.DebugPrintf("Redis hash-max-ziplist-entries: %v\n", redisHashMaxZiplistEntries)
 end:
+	if err != nil {
+		simpledb.DebugPrintf("error: %v\n", err)
+	}
+
 	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test End --------\n")
 	// Output:
 }
