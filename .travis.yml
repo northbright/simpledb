@@ -8,5 +8,9 @@ go:
   - 1.7
   - tip
 
+before_install:
+  - ./install-and-run-redis.sh
+
 install:
   - go get github.com/garyburd/redigo/redis
+  - go get github.com/northbright/redishelper
