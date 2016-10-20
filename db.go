@@ -2,7 +2,6 @@ package simpledb
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"regexp"
@@ -47,7 +46,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 	k := db.GenRedisHashMaxZiplistEntriesKey()
 
 	if len(name) == 0 {
-		err = errors.New("Empty db name.")
+		err = fmt.Errorf("Empty db name.")
 		goto end
 	}
 
@@ -205,7 +204,7 @@ func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 	}
 
 	if len(ids) != 1 {
-		err = errors.New("Count of created record != 1.")
+		err = fmt.Errorf("Count of created record != 1.")
 		goto end
 	}
 
@@ -235,13 +234,13 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	for i, data := range dataArr {
 		// Check empty data.
 		if len(data) == 0 {
-			err = errors.New("Empty data.")
+			err = fmt.Errorf("Empty data.")
 			goto end
 		}
 
 		// Check redundant data in dataArr.
 		if _, ok = checkedData[data]; ok {
-			err = errors.New(fmt.Sprintf("Redundant data found in dataArr: %v", data))
+			err = fmt.Errorf("Redundant data found in dataArr: %v", data)
 			goto end
 		}
 		checkedData[data] = i
@@ -253,7 +252,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		}
 
 		if exists {
-			err = errors.New(fmt.Sprintf("Data already exists in db: %v.", data))
+			err = fmt.Errorf("Data already exists in db: %v.", data)
 			goto end
 		}
 	}
@@ -440,7 +439,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		}
 
 		if !exists {
-			err = errors.New(fmt.Sprintf("Id: %v does not exist.", id))
+			err = fmt.Errorf("Id: %v does not exist.", id)
 			goto end
 		}
 
@@ -478,7 +477,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		}
 
 		if exists {
-			err = errors.New(fmt.Sprintf("Data already exists in db: %v.", data))
+			err = fmt.Errorf("Data already exists in db: %v.", data)
 			goto end
 		}
 	}
@@ -541,7 +540,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		}
 
 		if !exists {
-			err = errors.New(fmt.Sprintf("id:%v does not exist.", id))
+			err = fmt.Errorf("id:%v does not exist.", id)
 			goto end
 		}
 
@@ -611,7 +610,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	ids = []string{}
 
 	if len(pattern) == 0 {
-		err = errors.New("Empty pattern.")
+		err = fmt.Errorf("Empty pattern.")
 		goto end
 	}
 
@@ -643,7 +642,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 				l = len(items)
 				if l > 0 {
 					if l%2 != 0 {
-						err = errors.New("Search() error: HSCAN result error.")
+						err = fmt.Errorf("Search() error: HSCAN result error.")
 						goto end
 					}
 
@@ -718,7 +717,7 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 				l = len(items)
 				if l > 0 {
 					if l%2 != 0 {
-						err = errors.New("Search() error: HSCAN result error.")
+						err = fmt.Errorf("Search() error: HSCAN result error.")
 						goto end
 					}
 
@@ -802,7 +801,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 			encoding = re.FindString(ret)
 			if encoding == "" {
-				err = errors.New(fmt.Sprintf("Can not find encoding of %v.", recordHashKey))
+				err = fmt.Errorf("Can not find encoding of %v.", recordHashKey)
 				goto end
 			}
 
@@ -842,7 +841,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 			encoding = re.FindString(ret)
 			if encoding == "" {
-				err = errors.New(fmt.Sprintf("Can not find encoding of %v.", recordHashKey))
+				err = fmt.Errorf("Can not find encoding of %v.", recordHashKey)
 				goto end
 			}
 
