@@ -752,7 +752,7 @@ end:
 // Info() returns the information of current DB.
 //
 //     Returns:
-//         infoMap: key: section, value: infomation.
+//         infoMap: key: section, value: information.
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
 	var recordHashKey string
