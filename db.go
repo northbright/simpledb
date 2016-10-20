@@ -90,30 +90,30 @@ end:
 func (db *DB) Close() {
 }
 
-// ComputeBucketId returns the record bucket id by given record id.
-func (db *DB) ComputeBucketId(id uint64) uint64 {
+// ComputeBucketID returns the record bucket id by given record id.
+func (db *DB) ComputeBucketID(id uint64) uint64 {
 	return id/db.redisHashMaxZiplistEntries + 1
 }
 
-// GenMaxIdKey generates key of max record id.
-func (db *DB) GenMaxIdKey() (maxIdKey string) {
+// GenMaxIDKey generates key of max record id.
+func (db *DB) GenMaxIDKey() (maxIDKey string) {
 	return fmt.Sprintf("%v/maxid", db.Name)
 }
 
-// GetMaxId gets max record id.
-func (db *DB) GetMaxId(c redis.Conn) (maxId uint64, err error) {
-	k := db.GenMaxIdKey()
+// GetMaxID gets max record id.
+func (db *DB) GetMaxID(c redis.Conn) (maxID uint64, err error) {
+	k := db.GenMaxIDKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
 	if err != nil {
 		goto end
 	}
 
 	if !exists {
-		maxId = 0
+		maxID = 0
 		goto end
 	}
 
-	maxId, err = redis.Uint64(c.Do("GET", k))
+	maxID, err = redis.Uint64(c.Do("GET", k))
 	if err != nil {
 		goto end
 	}
@@ -124,17 +124,17 @@ end:
 		return 0, err
 	}
 
-	return maxId, nil
+	return maxID, nil
 }
 
-// GenMaxBucketIdKey generates the key of max record bucket id.
-func (db *DB) GenMaxBucketIdKey() (maxBucketIdKey string) {
+// GenMaxBucketIDKey generates the key of max record bucket id.
+func (db *DB) GenMaxBucketIDKey() (maxBucketIDKey string) {
 	return fmt.Sprintf("%v/maxbucketid", db.Name)
 }
 
-// GetMaxBucketId gets the max record bucket id.
-func (db *DB) GetMaxBucketId(c redis.Conn) (maxBucketId uint64, err error) {
-	k := db.GenMaxBucketIdKey()
+// GetMaxBucketID gets the max record bucket id.
+func (db *DB) GetMaxBucketID(c redis.Conn) (maxBucketID uint64, err error) {
+	k := db.GenMaxBucketIDKey()
 	exists, err := redis.Bool(c.Do("EXISTS", k))
 	if err != nil {
 		goto end
@@ -147,31 +147,31 @@ func (db *DB) GetMaxBucketId(c redis.Conn) (maxBucketId uint64, err error) {
 		}
 	}
 
-	maxBucketId, err = redis.Uint64(c.Do("GET", k))
+	maxBucketID, err = redis.Uint64(c.Do("GET", k))
 	if err != nil {
 		goto end
 	}
 
 end:
 	if err != nil {
-		DebugPrintf("GetMaxBucketId() error: %v\n", err)
+		DebugPrintf("GetMaxBucketID() error: %v\n", err)
 		return 1, err
 	}
 
-	return maxBucketId, nil
+	return maxBucketID, nil
 }
 
 // GenRecordHashKey generates the record hash(bucket) key by given record id.
 func (db *DB) GenRecordHashKey(id uint64) string {
-	bucketId := db.ComputeBucketId(id)
-	return fmt.Sprintf("%v/bucket/%v", db.Name, bucketId)
+	bucketID := db.ComputeBucketID(id)
+	return fmt.Sprintf("%v/bucket/%v", db.Name, bucketID)
 }
 
 // GenIndexHashKey generates the index hash(bucket) key by given record data.
 func (db *DB) GenIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
-	bucketId := uint64(checkSum) % db.estIndexBucketNum
-	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketId)
+	bucketID := uint64(checkSum) % db.estIndexBucketNum
+	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketID)
 }
 
 // Exists checks if given record exists in database.
@@ -220,8 +220,8 @@ end:
 // BatchCreate creates records in database.
 func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
 	var checkedData map[string]int = make(map[string]int) // key: data, value: order in dataArr.
-	var nId, maxId, bucketId, maxBucketId, recordHashField uint64
-	var maxBucketIdKey, recordHashKey, indexHashKey, indexHashField, maxIdKey string
+	var nID, maxID, bucketID, maxBucketID, recordHashField uint64
+	var maxBucketIDKey, recordHashKey, indexHashKey, indexHashField, maxIDKey string
 	var ret interface{}
 	err = nil
 	ids = []string{}
@@ -258,22 +258,22 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	}
 
 	// Get max id.
-	maxId, err = db.GetMaxId(c)
+	maxID, err = db.GetMaxID(c)
 	if err != nil {
 		goto end
 	}
 
 	// Get max id key.
-	maxIdKey = db.GenMaxIdKey()
+	maxIDKey = db.GenMaxIDKey()
 
 	// Get max bucket id key.
-	maxBucketIdKey = db.GenMaxBucketIdKey()
+	maxBucketIDKey = db.GenMaxBucketIDKey()
 	if err != nil {
 		goto end
 	}
 
 	// Get max bucket id.
-	maxBucketId, err = db.GetMaxBucketId(c)
+	maxBucketID, err = db.GetMaxBucketID(c)
 	if err != nil {
 		goto end
 	}
@@ -284,32 +284,32 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 
 	for i, data := range dataArr {
 		// Increase Id
-		nId = maxId + uint64(i+1)
-		id = strconv.FormatUint(nId, 10)
+		nID = maxID + uint64(i+1)
+		id = strconv.FormatUint(nID, 10)
 		// Insert to result id array
 		ids = append(ids, id)
 
 		// Compute bucket id.
-		bucketId = db.ComputeBucketId(nId)
+		bucketID = db.ComputeBucketID(nID)
 
 		// Generate hash key for record and index.
-		recordHashKey = db.GenRecordHashKey(nId)
+		recordHashKey = db.GenRecordHashKey(nID)
 		indexHashKey = db.GenIndexHashKey(data)
 
 		// Create record and index.
-		recordHashField = nId
+		recordHashField = nID
 		indexHashField = data
 
 		c.Send("HSET", recordHashKey, recordHashField, data)
-		c.Send("HSET", indexHashKey, indexHashField, nId)
+		c.Send("HSET", indexHashKey, indexHashField, nID)
 	}
 
 	// Increase max bucket id if need.
-	if bucketId > maxBucketId {
-		c.Send("SET", maxBucketIdKey, bucketId)
+	if bucketID > maxBucketID {
+		c.Send("SET", maxBucketIDKey, bucketID)
 	}
 
-	c.Send("INCRBY", maxIdKey, len(dataArr))
+	c.Send("INCRBY", maxIDKey, len(dataArr))
 
 	// Do piplined transaction.
 	ret, err = c.Do("EXEC")
@@ -331,25 +331,25 @@ end:
 	return ids, nil
 }
 
-// IdExists checks if record with given record id exists in database.
-func (db *DB) IdExists(c redis.Conn, id string) (exists bool, err error) {
-	var nId uint64
+// IDExists checks if record with given record id exists in database.
+func (db *DB) IDExists(c redis.Conn, id string) (exists bool, err error) {
+	var nID uint64
 	var recordHashKey string
 
-	nId, err = strconv.ParseUint(id, 10, 64)
+	nID, err = strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		goto end
 	}
 
-	recordHashKey = db.GenRecordHashKey(nId)
-	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, nId))
+	recordHashKey = db.GenRecordHashKey(nID)
+	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, nID))
 	if err != nil {
 		goto end
 	}
 
 end:
 	if err != nil {
-		DebugPrintf("IdExists()  error: %v\n", err)
+		DebugPrintf("IDExists()  error: %v\n", err)
 		return false, err
 	}
 
@@ -358,16 +358,16 @@ end:
 
 // Get returns record data by given record id.
 func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
-	var nId uint64
+	var nID uint64
 	recordHashKey := ""
 
-	nId, err = strconv.ParseUint(id, 10, 64)
+	nID, err = strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		goto end
 	}
 
-	recordHashKey = db.GenRecordHashKey(nId)
-	data, err = redis.String(c.Do("HGET", recordHashKey, nId))
+	recordHashKey = db.GenRecordHashKey(nID)
+	data, err = redis.String(c.Do("HGET", recordHashKey, nID))
 	if err != nil {
 		goto end
 	}
@@ -425,7 +425,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 	}
 
 	var recordHashKey, oldIndexHashKey, newIndexHashKey, oldData string
-	var nId, recordHashField uint64
+	var nID, recordHashField uint64
 	var ret interface{}
 	exists := false
 	updateInfoMap := make(map[uint64]updateInfo)
@@ -433,7 +433,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 
 	// Check and input dataArr
 	for id, data := range dataMap {
-		exists, err = db.IdExists(c, id)
+		exists, err = db.IDExists(c, id)
 		if err != nil {
 			goto end
 		}
@@ -448,13 +448,13 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 			goto end
 		}
 
-		nId, err = strconv.ParseUint(id, 10, 64)
+		nID, err = strconv.ParseUint(id, 10, 64)
 		if err != nil {
 			goto end
 		}
 
-		recordHashKey = db.GenRecordHashKey(nId)
-		recordHashField = nId
+		recordHashKey = db.GenRecordHashKey(nID)
+		recordHashField = nID
 		oldIndexHashKey = db.GenIndexHashKey(oldData)
 		newIndexHashKey = db.GenIndexHashKey(data)
 
@@ -486,9 +486,9 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 	c.Send("MULTI")
 	alreadySendMULTI = true
 
-	for nId, info := range updateInfoMap {
+	for nID, info := range updateInfoMap {
 		c.Send("HSET", info.recordHashKey, info.recordHashField, info.data)
-		c.Send("HSET", info.newIndexHashKey, info.newIndexHashField, nId)
+		c.Send("HSET", info.newIndexHashKey, info.newIndexHashField, nID)
 		c.Send("HDEL", info.oldIndexHashKey, info.oldIndexHashField)
 	}
 
@@ -526,7 +526,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 	}
 
 	var recordHashKey, indexHashKey, data string
-	var nId, recordHashField uint64
+	var nID, recordHashField uint64
 	var ret interface{}
 	delInfoMap := make(map[uint64]delInfo)
 	exists := false
@@ -534,7 +534,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 
 	// Check Id
 	for _, id := range ids {
-		exists, err = db.IdExists(c, id)
+		exists, err = db.IDExists(c, id)
 		if err != nil {
 			goto end
 		}
@@ -549,13 +549,13 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 			goto end
 		}
 
-		nId, err = strconv.ParseUint(id, 10, 64)
+		nID, err = strconv.ParseUint(id, 10, 64)
 		if err != nil {
 			goto end
 		}
 
-		recordHashKey = db.GenRecordHashKey(nId)
-		recordHashField = nId
+		recordHashKey = db.GenRecordHashKey(nID)
+		recordHashField = nID
 		indexHashKey = db.GenIndexHashKey(data)
 
 		delInfoMap[recordHashField] = delInfo{
@@ -754,7 +754,7 @@ end:
 //     Returns:
 //         infoMap: key: section, value: information.
 func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
-	var maxId, maxBucketId, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
+	var maxID, maxBucketID, recordBucketNum, recordNum, indexBucketNum, indexNum, n, cursor uint64
 	var recordHashKey string
 	ret := ""
 	encoding := ""
@@ -768,20 +768,20 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	infoMap = make(map[string]string)
 	var v []interface{}
 
-	maxId, err = db.GetMaxId(c)
+	maxID, err = db.GetMaxID(c)
 	if err != nil {
 		goto end
 	}
-	infoMap["max id"] = strconv.FormatUint(maxId, 10)
+	infoMap["max id"] = strconv.FormatUint(maxID, 10)
 
-	maxBucketId, err = db.GetMaxBucketId(c)
+	maxBucketID, err = db.GetMaxBucketID(c)
 	if err != nil {
 		goto end
 	}
-	infoMap["max bucket id"] = strconv.FormatUint(maxBucketId, 10)
+	infoMap["max bucket id"] = strconv.FormatUint(maxBucketID, 10)
 
 	// Check record hashes' encoding
-	for i := maxBucketId; i >= 1; i-- {
+	for i := maxBucketID; i >= 1; i-- {
 		recordHashKey = fmt.Sprintf("%v/bucket/%v", db.Name, i)
 		n, err = redis.Uint64(c.Do("HLEN", recordHashKey))
 		if err != nil {

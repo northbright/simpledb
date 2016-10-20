@@ -88,14 +88,14 @@ end:
 	// Output:
 }
 
-func ExampleDB_IdExists() {
+func ExampleDB_IDExists() {
 	var err error
 	var db *simpledb.DB
 	exists := false
 	id := "1"
 
 	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- IdExists() Test Begin --------\n")
+	simpledb.DebugPrintf("--------- IDExists() Test Begin --------\n")
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -105,7 +105,7 @@ func ExampleDB_IdExists() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	exists, err = db.IdExists(c, id)
+	exists, err = db.IDExists(c, id)
 	if err != nil {
 		goto end
 	}
@@ -113,7 +113,7 @@ func ExampleDB_IdExists() {
 	simpledb.DebugPrintf("IdExsits(%v): %v\n", id, exists)
 
 end:
-	simpledb.DebugPrintf("--------- IdExists() Test End --------\n")
+	simpledb.DebugPrintf("--------- IDExists() Test End --------\n")
 	// Output:
 }
 
