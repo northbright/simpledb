@@ -7,7 +7,7 @@ import (
 	"github.com/northbright/simpledb"
 )
 
-func ExampleDB_GetRedisHashMaxZiplistEntries() {
+func Example_GetRedisHashMaxZiplistEntries() {
 	var err error
 	var redisHashMaxZiplistEntries uint64 = 0
 
