@@ -643,7 +643,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 				l = len(items)
 				if l > 0 {
 					if l%2 != 0 {
-						errors.New("Search() error: HSCAN result error.")
+						err = errors.New("Search() error: HSCAN result error.")
 						goto end
 					}
 
@@ -718,7 +718,7 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 				l = len(items)
 				if l > 0 {
 					if l%2 != 0 {
-						errors.New("Search() error: HSCAN result error.")
+						err = errors.New("Search() error: HSCAN result error.")
 						goto end
 					}
 
