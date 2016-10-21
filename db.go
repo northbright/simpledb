@@ -540,7 +540,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		}
 
 		if !exists {
-			err = fmt.Errorf("id:%v does not exist.", id)
+			err = fmt.Errorf("id:%v does not exist", id)
 			goto end
 		}
 
