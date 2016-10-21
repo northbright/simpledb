@@ -789,7 +789,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 		}
 
 		if n > 0 {
-			recordBucketNum += 1
+			recordBucketNum++
 			recordNum += n
 
 			// Check hash encoding: ziplist or hashtable.
@@ -825,7 +825,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 		}
 
 		for _, k := range keys {
-			indexBucketNum += 1
+			indexBucketNum++
 
 			n, err = redis.Uint64(c.Do("HLEN", k))
 			if err != nil {
