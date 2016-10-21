@@ -17,7 +17,7 @@ const (
 
 var (
 	// DEBUG represents debug mode. It'll output debug messages if it's true.
-	DEBUG bool = true
+	DEBUG = true
 	// DefRedisHashMaxZiplistEntries is Redis "hash-max-ziplist-entries" value.
 	DefRedisHashMaxZiplistEntries uint64 = 512
 )
@@ -219,7 +219,7 @@ end:
 
 // BatchCreate creates records in database.
 func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err error) {
-	var checkedData map[string]int = make(map[string]int) // key: data, value: order in dataArr.
+	var checkedData = make(map[string]int) // key: data, value: order in dataArr.
 	var nID, maxID, bucketID, maxBucketID, recordHashField uint64
 	var maxBucketIDKey, recordHashKey, indexHashKey, indexHashField, maxIDKey string
 	var ret interface{}
