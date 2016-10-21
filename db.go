@@ -79,7 +79,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.Name)
 end:
 	if err != nil {
-		DebugPrintf("Open(c, %v) error: %v\n", name, err)
+		debugPrintf("Open(c, %v) error: %v\n", name, err)
 		return nil, err
 	}
 
@@ -120,7 +120,7 @@ func (db *DB) GetMaxID(c redis.Conn) (maxID uint64, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("GenMaxId() error: %v\n", err)
+		debugPrintf("GenMaxId() error: %v\n", err)
 		return 0, err
 	}
 
@@ -154,7 +154,7 @@ func (db *DB) GetMaxBucketID(c redis.Conn) (maxBucketID uint64, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("GetMaxBucketID() error: %v\n", err)
+		debugPrintf("GetMaxBucketID() error: %v\n", err)
 		return 1, err
 	}
 
@@ -188,7 +188,7 @@ func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("Exists() error: %v\n", err)
+		debugPrintf("Exists() error: %v\n", err)
 		return false, err
 	}
 
@@ -210,7 +210,7 @@ func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("Create() error: %v\n", err)
+		debugPrintf("Create() error: %v\n", err)
 		return "", err
 	}
 
@@ -317,14 +317,14 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		goto end
 	}
 
-	DebugPrintf("BatchCreate() ok. ret: %v, ids: %v\n", ret, ids)
+	debugPrintf("BatchCreate() ok. ret: %v, ids: %v\n", ret, ids)
 
 end:
 	if err != nil {
 		if alreadySendMULTI {
 			c.Do("DISCARD")
 		}
-		DebugPrintf("BatchCreate() error: %v\n", err)
+		debugPrintf("BatchCreate() error: %v\n", err)
 		return []string{}, err
 	}
 
@@ -349,7 +349,7 @@ func (db *DB) IDExists(c redis.Conn, id string) (exists bool, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("IDExists()  error: %v\n", err)
+		debugPrintf("IDExists()  error: %v\n", err)
 		return false, err
 	}
 
@@ -374,7 +374,7 @@ func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("Get() error: %v\n", err)
+		debugPrintf("Get() error: %v\n", err)
 		return "", err
 	}
 
@@ -394,7 +394,7 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 	for _, id := range ids {
 		data, err = db.Get(c, id)
 		if err != nil {
-			DebugPrintf("BatchGet(): db.Get() error: %v\n", err)
+			debugPrintf("BatchGet(): db.Get() error: %v\n", err)
 			return dataMap, err
 		}
 		dataMap[id] = data
@@ -497,14 +497,14 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		goto end
 	}
 
-	DebugPrintf("BatchUpdate() ok. ret: %v\n", ret)
+	debugPrintf("BatchUpdate() ok. ret: %v\n", ret)
 
 end:
 	if err != nil {
 		if alreadySendMULTI {
 			c.Do("DISCARD")
 		}
-		DebugPrintf("BatchUpdate() error: %v\n", err)
+		debugPrintf("BatchUpdate() error: %v\n", err)
 		return err
 	}
 
@@ -580,14 +580,14 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		goto end
 	}
 
-	DebugPrintf("BatchDelete() ok. ret: %v\n", ret)
+	debugPrintf("BatchDelete() ok. ret: %v\n", ret)
 
 end:
 	if err != nil {
 		if alreadySendMULTI {
 			c.Do("DISCARD")
 		}
-		DebugPrintf("BatchDelete() error: %v\n", err)
+		debugPrintf("BatchDelete() error: %v\n", err)
 		return err
 	}
 
@@ -663,7 +663,7 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	}
 end:
 	if err != nil {
-		DebugPrintf("Search() error: %v\n", err)
+		debugPrintf("Search() error: %v\n", err)
 		return []string{}, err
 	}
 
@@ -742,7 +742,7 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 	}
 end:
 	if err != nil {
-		DebugPrintf("Search() error: %v\n", err)
+		debugPrintf("Search() error: %v\n", err)
 		return [][]string{}, err
 	}
 
@@ -795,7 +795,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 			// Check hash encoding: ziplist or hashtable.
 			ret, err = redis.String(c.Do("DEBUG", "OBJECT", recordHashKey))
 			if err != nil {
-				DebugPrintf("failed to exec debug object, %v\n.", recordHashKey)
+				debugPrintf("failed to exec debug object, %v\n.", recordHashKey)
 				goto end
 			}
 
@@ -877,7 +877,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 end:
 	if err != nil {
-		DebugPrintf("Info() error: %v\n", err)
+		debugPrintf("Info() error: %v\n", err)
 		return make(map[string]string), err
 	}
 	return infoMap, nil

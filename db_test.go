@@ -1,6 +1,7 @@
 package simpledb_test
 
 import (
+	"log"
 	"strings"
 
 	"github.com/garyburd/redigo/redis"
@@ -13,8 +14,8 @@ func ExampleDB_Create() {
 	id := ""
 	data := `{"name":"Bob Smith","tel":"13500135000"}`
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Create() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Create() Test Begin --------\n")
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -34,9 +35,9 @@ func ExampleDB_Create() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Result: id: %v, data: %v\n", id, data)
+	log.Printf("Result: id: %v, data: %v\n", id, data)
 end:
-	simpledb.DebugPrintf("--------- Create() Test End --------\n")
+	log.Printf("--------- Create() Test End --------\n")
 	// Output:
 }
 
@@ -55,8 +56,8 @@ func ExampleDB_BatchCreate() {
 		`{"name":"王宝多","tel":"13700137077"}`,
 	}
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- BatchCreate() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- BatchCreate() Test Begin --------\n")
 
 	dataMap = make(map[string]string)
 
@@ -73,18 +74,18 @@ func ExampleDB_BatchCreate() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Result:\n")
+	log.Printf("Result:\n")
 	dataMap, err = db.BatchGet(c, ids)
 	if err != nil {
 		goto end
 	}
 
 	for id, data := range dataMap {
-		simpledb.DebugPrintf("id: %v, data: %v\n", id, data)
+		log.Printf("id: %v, data: %v\n", id, data)
 	}
 
 end:
-	simpledb.DebugPrintf("--------- BatchCreate() Test End --------\n")
+	log.Printf("--------- BatchCreate() Test End --------\n")
 	// Output:
 }
 
@@ -94,8 +95,8 @@ func ExampleDB_IDExists() {
 	exists := false
 	id := "1"
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- IDExists() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- IDExists() Test Begin --------\n")
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -110,10 +111,10 @@ func ExampleDB_IDExists() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("IdExsits(%v): %v\n", id, exists)
+	log.Printf("IdExsits(%v): %v\n", id, exists)
 
 end:
-	simpledb.DebugPrintf("--------- IDExists() Test End --------\n")
+	log.Printf("--------- IDExists() Test End --------\n")
 	// Output:
 }
 
@@ -132,8 +133,8 @@ func ExampleDB_Get() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Get() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Get() Test Begin --------\n")
 	ids, err = db.Search(c, pattern)
 	if err != nil {
 		goto end
@@ -148,11 +149,11 @@ func ExampleDB_Get() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
-	simpledb.DebugPrintf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("id: %v, data: %v\n", ids[0], data)
 
 end:
-	simpledb.DebugPrintf("--------- Get() Test End --------\n")
+	log.Printf("--------- Get() Test End --------\n")
 	// Output:
 }
 
@@ -171,8 +172,8 @@ func ExampleDB_BatchGet() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- BatchGet() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- BatchGet() Test Begin --------\n")
 	ids, err = db.Search(c, pattern)
 	if err != nil {
 		goto end
@@ -182,13 +183,13 @@ func ExampleDB_BatchGet() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("Search pattern: %v, Result:\n", pattern)
 	for id, data := range dataMap {
-		simpledb.DebugPrintf("id: %v, data: %v\n", id, data)
+		log.Printf("id: %v, data: %v\n", id, data)
 	}
 
 end:
-	simpledb.DebugPrintf("--------- BatchGet() Test End --------\n")
+	log.Printf("--------- BatchGet() Test End --------\n")
 	// Output:
 }
 
@@ -207,8 +208,8 @@ func ExampleDB_Update() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Update() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Update() Test Begin --------\n")
 	ids, err = db.Search(c, pattern)
 	if err != nil {
 		goto end
@@ -223,8 +224,8 @@ func ExampleDB_Update() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
-	simpledb.DebugPrintf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("id: %v, data: %v\n", ids[0], data)
 
 	// Change phone number from 135xxx to 138xxx.
 	data = strings.Replace(data, "135", "158", -1)
@@ -233,15 +234,15 @@ func ExampleDB_Update() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Change phone number from 135xxx to 158xxx.")
+	log.Printf("Change phone number from 135xxx to 158xxx.")
 	data, err = db.Get(c, ids[0])
 	if err != nil {
 		goto end
 	}
-	simpledb.DebugPrintf("Updated. id: %v, data: %v\n", ids[0], data)
+	log.Printf("Updated. id: %v, data: %v\n", ids[0], data)
 
 end:
-	simpledb.DebugPrintf("--------- Update() Test End --------\n")
+	log.Printf("--------- Update() Test End --------\n")
 	// Output:
 }
 
@@ -261,9 +262,9 @@ func ExampleDB_BatchUpdate() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- BatchUpdate() Test Begin --------\n")
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("\n")
+	log.Printf("--------- BatchUpdate() Test Begin --------\n")
+	log.Printf("Search pattern: %v, Result:\n", pattern)
 	ids, err = db.Search(c, pattern)
 	if err != nil {
 		goto end
@@ -273,9 +274,9 @@ func ExampleDB_BatchUpdate() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Result:\n")
+	log.Printf("Result:\n")
 	for id, data := range dataMap {
-		simpledb.DebugPrintf("id: %v, data: %v\n", id, data)
+		log.Printf("id: %v, data: %v\n", id, data)
 		newDataMap[id] = strings.Replace(data, "138", "186", -1)
 	}
 
@@ -289,12 +290,12 @@ func ExampleDB_BatchUpdate() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Batch update phone number from 138xxx to 186xxx.")
+	log.Printf("Batch update phone number from 138xxx to 186xxx.")
 	for id, data := range dataMap {
-		simpledb.DebugPrintf("id: %v, data: %v\n", id, data)
+		log.Printf("id: %v, data: %v\n", id, data)
 	}
 end:
-	simpledb.DebugPrintf("--------- BatchUpdate() Test End --------\n")
+	log.Printf("--------- BatchUpdate() Test End --------\n")
 	// Output:
 }
 
@@ -319,11 +320,11 @@ func ExampleDB_Search() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Search() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Search() Test Begin --------\n")
 
 	for _, p := range patterns {
-		simpledb.DebugPrintf("Search pattern: %v\n", p)
+		log.Printf("Search pattern: %v\n", p)
 		ids, err = db.Search(c, p)
 		if err != nil {
 			goto end
@@ -334,14 +335,14 @@ func ExampleDB_Search() {
 			goto end
 		}
 
-		simpledb.DebugPrintf("Result:\n")
+		log.Printf("Result:\n")
 		for k, v := range dataMap {
-			simpledb.DebugPrintf("id: %v, data: %v\n", k, v)
+			log.Printf("id: %v, data: %v\n", k, v)
 		}
 	}
 
 end:
-	simpledb.DebugPrintf("--------- Search() Test End --------\n")
+	log.Printf("--------- Search() Test End --------\n")
 	// Output:
 }
 
@@ -367,8 +368,8 @@ func ExampleDB_RegexpSearch() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- RegexpSearch() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- RegexpSearch() Test Begin --------\n")
 
 	ids, err = db.RegexpSearch(c, patterns)
 	if err != nil {
@@ -376,19 +377,19 @@ func ExampleDB_RegexpSearch() {
 	}
 
 	for i, p := range patterns {
-		simpledb.DebugPrintf("Regexp pattern: %v\n", p)
+		log.Printf("Regexp pattern: %v\n", p)
 		dataMap, err = db.BatchGet(c, ids[i])
 		if err != nil {
 			goto end
 		}
 
-		simpledb.DebugPrintf("Result:\n")
+		log.Printf("Result:\n")
 		for k, v := range dataMap {
-			simpledb.DebugPrintf("id: %v, data: %v\n", k, v)
+			log.Printf("id: %v, data: %v\n", k, v)
 		}
 	}
 end:
-	simpledb.DebugPrintf("--------- RegexpSearch() Test End --------\n")
+	log.Printf("--------- RegexpSearch() Test End --------\n")
 	// Output:
 }
 
@@ -405,20 +406,20 @@ func ExampleDB_Info() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Info() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Info() Test Begin --------\n")
 
 	infoMap, err = db.Info(c)
 	if err != nil {
 		goto end
 	}
-	simpledb.DebugPrintf("Info():\n")
+	log.Printf("Info():\n")
 	for k, v := range infoMap {
-		simpledb.DebugPrintf("%v: %v\n", k, v)
+		log.Printf("%v: %v\n", k, v)
 	}
 
 end:
-	simpledb.DebugPrintf("--------- Info() Test End --------\n")
+	log.Printf("--------- Info() Test End --------\n")
 	// Output:
 }
 
@@ -437,8 +438,8 @@ func ExampleDB_Delete() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- Delete() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- Delete() Test Begin --------\n")
 
 	ids, err = db.Search(c, pattern)
 	if err != nil {
@@ -454,8 +455,8 @@ func ExampleDB_Delete() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
-	simpledb.DebugPrintf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("id: %v, data: %v\n", ids[0], data)
 
 	// Delete
 	err = db.Delete(c, ids[0])
@@ -469,11 +470,11 @@ func ExampleDB_Delete() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search again after record deleted. Result:\n")
-	simpledb.DebugPrintf("ids: %v\n", ids)
+	log.Printf("Search again after record deleted. Result:\n")
+	log.Printf("ids: %v\n", ids)
 
 end:
-	simpledb.DebugPrintf("--------- Delete() Test End --------\n")
+	log.Printf("--------- Delete() Test End --------\n")
 	// Output:
 }
 
@@ -492,8 +493,8 @@ func ExampleDB_BatchDelete() {
 
 	db, _ = simpledb.Open(c, "student")
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- BatchDelete() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- BatchDelete() Test Begin --------\n")
 	// Get all records.
 	ids, err = db.Search(c, pattern)
 	if err != nil {
@@ -505,9 +506,9 @@ func ExampleDB_BatchDelete() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search pattern: %v, Result:\n", pattern)
+	log.Printf("Search pattern: %v, Result:\n", pattern)
 	for id, data := range dataMap {
-		simpledb.DebugPrintf("id: %v, data: %v\n", id, data)
+		log.Printf("id: %v, data: %v\n", id, data)
 	}
 
 	// Delete all record.
@@ -522,10 +523,10 @@ func ExampleDB_BatchDelete() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Search again after record deleted. Result:\n")
-	simpledb.DebugPrintf("ids: %v\n", ids)
+	log.Printf("Search again after record deleted. Result:\n")
+	log.Printf("ids: %v\n", ids)
 
 end:
-	simpledb.DebugPrintf("--------- BatchDelete() Test End --------\n")
+	log.Printf("--------- BatchDelete() Test End --------\n")
 	// Output:
 }

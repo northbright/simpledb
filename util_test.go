@@ -1,6 +1,8 @@
 package simpledb_test
 
 import (
+	"log"
+
 	"github.com/garyburd/redigo/redis"
 	"github.com/northbright/simpledb"
 )
@@ -9,8 +11,8 @@ func ExampleGetRedisHashMaxZiplistEntries() {
 	var err error
 	var redisHashMaxZiplistEntries uint64 = 0
 
-	simpledb.DebugPrintf("\n")
-	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test Begin --------\n")
+	log.Printf("\n")
+	log.Printf("--------- GetRedisHashMaxZiplistEntries() Test Begin --------\n")
 
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
@@ -23,12 +25,12 @@ func ExampleGetRedisHashMaxZiplistEntries() {
 		goto end
 	}
 
-	simpledb.DebugPrintf("Redis hash-max-ziplist-entries: %v\n", redisHashMaxZiplistEntries)
+	log.Printf("Redis hash-max-ziplist-entries: %v\n", redisHashMaxZiplistEntries)
 end:
 	if err != nil {
-		simpledb.DebugPrintf("error: %v\n", err)
+		log.Printf("error: %v\n", err)
 	}
 
-	simpledb.DebugPrintf("--------- GetRedisHashMaxZiplistEntries() Test End --------\n")
+	log.Printf("--------- GetRedisHashMaxZiplistEntries() Test End --------\n")
 	// Output:
 }

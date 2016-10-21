@@ -20,7 +20,7 @@ func GetRedisHashMaxZiplistEntries(c redis.Conn) (redisHashMaxZiplistEntries uin
 
 end:
 	if err != nil {
-		DebugPrintf("GetRedisHashMaxZiplistEntries() error: %v\n", err)
+		debugPrintf("GetRedisHashMaxZiplistEntries() error: %v\n", err)
 		return 0, err
 	}
 
