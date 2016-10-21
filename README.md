@@ -1,6 +1,7 @@
 # simpledb
 
 [![Build Status](https://travis-ci.org/northbright/simpledb.svg?branch=master)](https://travis-ci.org/northbright/simpledb)
+[![Go Report Card](https://goreportcard.com/badge/github.com/northbright/simpledb)](https://goreportcard.com/report/github.com/northbright/simpledb)
 
 simpledb is a [Golang](https://golang.org) package which provides CRUD and search operations on records stored in Redis. It's based on [Redigo](https://github.com/garyburd/redigo).
 
