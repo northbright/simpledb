@@ -7,6 +7,7 @@ import (
 	"github.com/northbright/redishelper"
 )
 
+// GetRedisHashMaxZiplistEntries gets the Redis "hash-max-ziplist-entries" config value.
 func GetRedisHashMaxZiplistEntries(c redis.Conn) (redisHashMaxZiplistEntries uint64, err error) {
 	config, err := redishelper.GetConfig(c)
 	if err != nil {
