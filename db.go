@@ -603,7 +603,7 @@ end:
 //         ids: matched record ids.
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	var cursor, subCursor uint64
-	var l int = 0
+	var l int
 	var v []interface{}
 	keys := []string{}
 	items := []string{}
@@ -678,7 +678,7 @@ end:
 //         ids: matched record ids map. key: pattern, value: matched record ids.
 func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err error) {
 	var cursor, subCursor uint64
-	var l int = 0
+	var l int
 	var v []interface{}
 	keys := []string{}
 	items := []string{}
