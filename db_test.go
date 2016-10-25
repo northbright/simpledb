@@ -59,8 +59,6 @@ func ExampleDB_BatchCreate() {
 	log.Printf("\n")
 	log.Printf("--------- BatchCreate() Test Begin --------\n")
 
-	dataMap = make(map[string]string)
-
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		goto end
