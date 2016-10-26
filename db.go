@@ -50,25 +50,21 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 		goto end
 	}
 
-	exists, err = redis.Bool(c.Do("EXISTS", k))
-	if err != nil {
+	if exists, err = redis.Bool(c.Do("EXISTS", k)); err != nil {
 		goto end
 	}
 
 	// Set db.redisHashMaxZiplistEntries only once at first time.
 	if !exists {
-		db.redisHashMaxZiplistEntries, err = GetRedisHashMaxZiplistEntries(c)
-		if err != nil {
+		if db.redisHashMaxZiplistEntries, err = GetRedisHashMaxZiplistEntries(c); err != nil {
 			goto end
 		}
 
-		_, err = c.Do("SET", k, db.redisHashMaxZiplistEntries)
-		if err != nil {
+		if _, err = c.Do("SET", k, db.redisHashMaxZiplistEntries); err != nil {
 			goto end
 		}
 	} else {
-		db.redisHashMaxZiplistEntries, err = redis.Uint64(c.Do("GET", k))
-		if err != nil {
+		if db.redisHashMaxZiplistEntries, err = redis.Uint64(c.Do("GET", k)); err != nil {
 			goto end
 		}
 	}
@@ -103,8 +99,8 @@ func (db *DB) GenMaxIDKey() (maxIDKey string) {
 // GetMaxID gets max record id.
 func (db *DB) GetMaxID(c redis.Conn) (maxID uint64, err error) {
 	k := db.GenMaxIDKey()
-	exists, err := redis.Bool(c.Do("EXISTS", k))
-	if err != nil {
+	exists := false
+	if exists, err = redis.Bool(c.Do("EXISTS", k)); err != nil {
 		goto end
 	}
 
@@ -113,8 +109,7 @@ func (db *DB) GetMaxID(c redis.Conn) (maxID uint64, err error) {
 		goto end
 	}
 
-	maxID, err = redis.Uint64(c.Do("GET", k))
-	if err != nil {
+	if maxID, err = redis.Uint64(c.Do("GET", k)); err != nil {
 		goto end
 	}
 
@@ -135,20 +130,18 @@ func (db *DB) GenMaxBucketIDKey() (maxBucketIDKey string) {
 // GetMaxBucketID gets the max record bucket id.
 func (db *DB) GetMaxBucketID(c redis.Conn) (maxBucketID uint64, err error) {
 	k := db.GenMaxBucketIDKey()
-	exists, err := redis.Bool(c.Do("EXISTS", k))
-	if err != nil {
+	exists := false
+	if exists, err = redis.Bool(c.Do("EXISTS", k)); err != nil {
 		goto end
 	}
 
 	if !exists {
-		_, err := c.Do("SET", k, 1)
-		if err != nil {
+		if _, err := c.Do("SET", k, 1); err != nil {
 			goto end
 		}
 	}
 
-	maxBucketID, err = redis.Uint64(c.Do("GET", k))
-	if err != nil {
+	if maxBucketID, err = redis.Uint64(c.Do("GET", k)); err != nil {
 		goto end
 	}
 
@@ -181,8 +174,7 @@ func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 	indexHashField := data
 
 	indexHashKey = db.GenIndexHashKey(data)
-	exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField))
-	if err != nil {
+	if exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField)); err != nil {
 		goto end
 	}
 
@@ -198,8 +190,7 @@ end:
 // Create creates a new record in database.
 func (db *DB) Create(c redis.Conn, data string) (id string, err error) {
 	ids := []string{}
-	ids, err = db.BatchCreate(c, []string{data})
-	if err != nil {
+	if ids, err = db.BatchCreate(c, []string{data}); err != nil {
 		goto end
 	}
 
@@ -246,8 +237,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		checkedData[data] = i
 
 		// Check if data already exist in db.
-		exists, err = db.Exists(c, data)
-		if err != nil {
+		if exists, err = db.Exists(c, data); err != nil {
 			goto end
 		}
 
@@ -258,8 +248,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	}
 
 	// Get max id.
-	maxID, err = db.GetMaxID(c)
-	if err != nil {
+	if maxID, err = db.GetMaxID(c); err != nil {
 		goto end
 	}
 
@@ -267,14 +256,12 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	maxIDKey = db.GenMaxIDKey()
 
 	// Get max bucket id key.
-	maxBucketIDKey = db.GenMaxBucketIDKey()
-	if err != nil {
+	if maxBucketIDKey = db.GenMaxBucketIDKey(); err != nil {
 		goto end
 	}
 
 	// Get max bucket id.
-	maxBucketID, err = db.GetMaxBucketID(c)
-	if err != nil {
+	if maxBucketID, err = db.GetMaxBucketID(c); err != nil {
 		goto end
 	}
 
@@ -335,14 +322,12 @@ func (db *DB) IDExists(c redis.Conn, id string) (exists bool, err error) {
 	var nID uint64
 	var recordHashKey string
 
-	nID, err = strconv.ParseUint(id, 10, 64)
-	if err != nil {
+	if nID, err = strconv.ParseUint(id, 10, 64); err != nil {
 		goto end
 	}
 
 	recordHashKey = db.GenRecordHashKey(nID)
-	exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, nID))
-	if err != nil {
+	if exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, nID)); err != nil {
 		goto end
 	}
 
@@ -378,8 +363,7 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 	alreadySendMULTI = true
 
 	for _, id := range ids {
-		nID, err = strconv.ParseUint(id, 10, 64)
-		if err != nil {
+		if nID, err = strconv.ParseUint(id, 10, 64); err != nil {
 			goto end
 		}
 
@@ -461,8 +445,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 
 	// Check and input dataArr
 	for id, data := range dataMap {
-		exists, err = db.IDExists(c, id)
-		if err != nil {
+		if exists, err = db.IDExists(c, id); err != nil {
 			goto end
 		}
 
@@ -471,13 +454,11 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 			goto end
 		}
 
-		oldData, err = db.Get(c, id)
-		if err != nil {
+		if oldData, err = db.Get(c, id); err != nil {
 			goto end
 		}
 
-		nID, err = strconv.ParseUint(id, 10, 64)
-		if err != nil {
+		if nID, err = strconv.ParseUint(id, 10, 64); err != nil {
 			goto end
 		}
 
@@ -499,8 +480,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		}
 
 		// Check if data already exists in db(may be with another id).
-		exists, err = db.Exists(c, data)
-		if err != nil {
+		if exists, err = db.Exists(c, data); err != nil {
 			goto end
 		}
 
@@ -561,8 +541,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 
 	// Check Id
 	for _, id := range ids {
-		exists, err = db.IDExists(c, id)
-		if err != nil {
+		if exists, err = db.IDExists(c, id); err != nil {
 			goto end
 		}
 
@@ -571,13 +550,11 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 			goto end
 		}
 
-		data, err = db.Get(c, id)
-		if err != nil {
+		if data, err = db.Get(c, id); err != nil {
 			goto end
 		}
 
-		nID, err = strconv.ParseUint(id, 10, 64)
-		if err != nil {
+		if nID, err = strconv.ParseUint(id, 10, 64); err != nil {
 			goto end
 		}
 
@@ -642,26 +619,22 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
-		if err != nil {
+		if v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024)); err != nil {
 			goto end
 		}
 
-		v, err = redis.Scan(v, &cursor, &keys)
-		if err != nil {
+		if v, err = redis.Scan(v, &cursor, &keys); err != nil {
 			goto end
 		}
 
 		for _, k := range keys {
 			subCursor = 0
 			for {
-				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1024))
-				if err != nil {
+				if v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1024)); err != nil {
 					goto end
 				}
 
-				v, err = redis.Scan(v, &subCursor, &items)
-				if err != nil {
+				if v, err = redis.Scan(v, &subCursor, &items); err != nil {
 					goto end
 				}
 
@@ -717,26 +690,22 @@ func (db *DB) RegexpSearch(c redis.Conn, patterns []string) (ids [][]string, err
 
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
-		if err != nil {
+		if v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024)); err != nil {
 			goto end
 		}
 
-		v, err = redis.Scan(v, &cursor, &keys)
-		if err != nil {
+		if v, err = redis.Scan(v, &cursor, &keys); err != nil {
 			goto end
 		}
 
 		for _, k := range keys {
 			subCursor = 0
 			for {
-				v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1024))
-				if err != nil {
+				if v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1024)); err != nil {
 					goto end
 				}
 
-				v, err = redis.Scan(v, &subCursor, &items)
-				if err != nil {
+				if v, err = redis.Scan(v, &subCursor, &items); err != nil {
 					goto end
 				}
 
@@ -794,14 +763,12 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	infoMap = make(map[string]string)
 	var v []interface{}
 
-	maxID, err = db.GetMaxID(c)
-	if err != nil {
+	if maxID, err = db.GetMaxID(c); err != nil {
 		goto end
 	}
 	infoMap["max id"] = strconv.FormatUint(maxID, 10)
 
-	maxBucketID, err = db.GetMaxBucketID(c)
-	if err != nil {
+	if maxBucketID, err = db.GetMaxBucketID(c); err != nil {
 		goto end
 	}
 	infoMap["max bucket id"] = strconv.FormatUint(maxBucketID, 10)
@@ -809,8 +776,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	// Check record hashes' encoding
 	for i := maxBucketID; i >= 1; i-- {
 		recordHashKey = fmt.Sprintf("%v/bucket/%v", db.Name, i)
-		n, err = redis.Uint64(c.Do("HLEN", recordHashKey))
-		if err != nil {
+		if n, err = redis.Uint64(c.Do("HLEN", recordHashKey)); err != nil {
 			goto end
 		}
 
@@ -819,8 +785,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 			recordNum += n
 
 			// Check hash encoding: ziplist or hashtable.
-			ret, err = redis.String(c.Do("DEBUG", "OBJECT", recordHashKey))
-			if err != nil {
+			if ret, err = redis.String(c.Do("DEBUG", "OBJECT", recordHashKey)); err != nil {
 				debugPrintf("failed to exec debug object, %v\n.", recordHashKey)
 				goto end
 			}
@@ -840,28 +805,24 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 	// Check index hashes' encoding
 	cursor = 0
 	for {
-		v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024))
-		if err != nil {
+		if v, err = redis.Values(c.Do("SCAN", cursor, "match", db.indexHashKeyScanPattern, "COUNT", 1024)); err != nil {
 			goto end
 		}
 
-		v, err = redis.Scan(v, &cursor, &keys)
-		if err != nil {
+		if v, err = redis.Scan(v, &cursor, &keys); err != nil {
 			goto end
 		}
 
 		for _, k := range keys {
 			indexBucketNum++
 
-			n, err = redis.Uint64(c.Do("HLEN", k))
-			if err != nil {
+			if n, err = redis.Uint64(c.Do("HLEN", k)); err != nil {
 				goto end
 			}
 			indexNum += n
 
 			// Check hash encoding: ziplist or hashtable
-			ret, err = redis.String(c.Do("DEBUG", "OBJECT", k))
-			if err != nil {
+			if ret, err = redis.String(c.Do("DEBUG", "OBJECT", k)); err != nil {
 				goto end
 			}
 
