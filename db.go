@@ -312,8 +312,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	c.Send("INCRBY", maxIDKey, len(dataArr))
 
 	// Do piplined transaction.
-	ret, err = c.Do("EXEC")
-	if err != nil {
+	if ret, err = c.Do("EXEC"); err != nil {
 		goto end
 	}
 
@@ -521,8 +520,7 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		c.Send("HDEL", info.oldIndexHashKey, info.oldIndexHashField)
 	}
 
-	ret, err = c.Do("EXEC")
-	if err != nil {
+	if ret, err = c.Do("EXEC"); err != nil {
 		goto end
 	}
 
@@ -604,8 +602,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		c.Send("HDEL", info.indexHashKey, info.indexHashField)
 	}
 
-	ret, err = c.Do("EXEC")
-	if err != nil {
+	if ret, err = c.Do("EXEC"); err != nil {
 		goto end
 	}
 
