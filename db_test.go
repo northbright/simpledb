@@ -10,6 +10,7 @@ import (
 
 func ExampleDB_Create() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	id := ""
 	data := `{"name":"Bob Smith","tel":"13500135000"}`
@@ -17,21 +18,18 @@ func ExampleDB_Create() {
 	log.Printf("\n")
 	log.Printf("--------- Create() Test Begin --------\n")
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
 
 	db, _ = simpledb.Open(c, "student")
 
-	id, err = db.Create(c, data)
-	if err != nil {
+	if id, err = db.Create(c, data); err != nil {
 		goto end
 	}
 
-	data, err = db.Get(c, id)
-	if err != nil {
+	if data, err = db.Get(c, id); err != nil {
 		goto end
 	}
 
@@ -43,6 +41,7 @@ end:
 
 func ExampleDB_BatchCreate() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	dataMap := make(map[string]string)
 	ids := []string{}
@@ -59,22 +58,19 @@ func ExampleDB_BatchCreate() {
 	log.Printf("\n")
 	log.Printf("--------- BatchCreate() Test Begin --------\n")
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
 
 	db, _ = simpledb.Open(c, "student")
 
-	ids, err = db.BatchCreate(c, data)
-	if err != nil {
+	if ids, err = db.BatchCreate(c, data); err != nil {
 		goto end
 	}
 
 	log.Printf("Result:\n")
-	dataMap, err = db.BatchGet(c, ids)
-	if err != nil {
+	if dataMap, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
@@ -89,6 +85,7 @@ end:
 
 func ExampleDB_IDExists() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	exists := false
 	id := "1"
@@ -96,16 +93,14 @@ func ExampleDB_IDExists() {
 	log.Printf("\n")
 	log.Printf("--------- IDExists() Test Begin --------\n")
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
 
 	db, _ = simpledb.Open(c, "student")
 
-	exists, err = db.IDExists(c, id)
-	if err != nil {
+	if exists, err = db.IDExists(c, id); err != nil {
 		goto end
 	}
 
@@ -118,13 +113,13 @@ end:
 
 func ExampleDB_Get() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Bob*"*`
 	data := ""
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -133,8 +128,7 @@ func ExampleDB_Get() {
 
 	log.Printf("\n")
 	log.Printf("--------- Get() Test Begin --------\n")
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
@@ -142,8 +136,7 @@ func ExampleDB_Get() {
 		goto end
 	}
 
-	data, err = db.Get(c, ids[0])
-	if err != nil {
+	if data, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
@@ -157,13 +150,13 @@ end:
 
 func ExampleDB_BatchGet() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"王*"*`
 	dataMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -172,12 +165,10 @@ func ExampleDB_BatchGet() {
 
 	log.Printf("\n")
 	log.Printf("--------- BatchGet() Test Begin --------\n")
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
-	dataMap, err = db.BatchGet(c, ids)
-	if err != nil {
+	if dataMap, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
@@ -193,13 +184,13 @@ end:
 
 func ExampleDB_Update() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Bob*"*`
 	data := ""
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -208,8 +199,7 @@ func ExampleDB_Update() {
 
 	log.Printf("\n")
 	log.Printf("--------- Update() Test Begin --------\n")
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
@@ -217,8 +207,7 @@ func ExampleDB_Update() {
 		goto end
 	}
 
-	data, err = db.Get(c, ids[0])
-	if err != nil {
+	if data, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
@@ -227,14 +216,12 @@ func ExampleDB_Update() {
 
 	// Change phone number from 135xxx to 138xxx.
 	data = strings.Replace(data, "135", "158", -1)
-	err = db.Update(c, ids[0], data)
-	if err != nil {
+	if err = db.Update(c, ids[0], data); err != nil {
 		goto end
 	}
 
 	log.Printf("Change phone number from 135xxx to 158xxx.")
-	data, err = db.Get(c, ids[0])
-	if err != nil {
+	if data, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 	log.Printf("Updated. id: %v, data: %v\n", ids[0], data)
@@ -246,14 +233,14 @@ end:
 
 func ExampleDB_BatchUpdate() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"tel":"138*"*`
 	dataMap := make(map[string]string)
 	newDataMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -263,12 +250,10 @@ func ExampleDB_BatchUpdate() {
 	log.Printf("\n")
 	log.Printf("--------- BatchUpdate() Test Begin --------\n")
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
-	dataMap, err = db.BatchGet(c, ids)
-	if err != nil {
+	if dataMap, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
@@ -278,13 +263,11 @@ func ExampleDB_BatchUpdate() {
 		newDataMap[id] = strings.Replace(data, "138", "186", -1)
 	}
 
-	err = db.BatchUpdate(c, newDataMap)
-	if err != nil {
+	if err = db.BatchUpdate(c, newDataMap); err != nil {
 		goto end
 	}
 
-	dataMap, err = db.BatchGet(c, ids)
-	if err != nil {
+	if dataMap, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
@@ -299,6 +282,7 @@ end:
 
 func ExampleDB_Search() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	patterns := []string{
@@ -310,8 +294,7 @@ func ExampleDB_Search() {
 
 	dataMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -323,13 +306,11 @@ func ExampleDB_Search() {
 
 	for _, p := range patterns {
 		log.Printf("Search pattern: %v\n", p)
-		ids, err = db.Search(c, p)
-		if err != nil {
+		if ids, err = db.Search(c, p); err != nil {
 			goto end
 		}
 
-		dataMap, err = db.BatchGet(c, ids)
-		if err != nil {
+		if dataMap, err = db.BatchGet(c, ids); err != nil {
 			goto end
 		}
 
@@ -346,6 +327,7 @@ end:
 
 func ExampleDB_RegexpSearch() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := [][]string{}
 	patterns := []string{
@@ -358,8 +340,7 @@ func ExampleDB_RegexpSearch() {
 
 	dataMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -369,15 +350,13 @@ func ExampleDB_RegexpSearch() {
 	log.Printf("\n")
 	log.Printf("--------- RegexpSearch() Test Begin --------\n")
 
-	ids, err = db.RegexpSearch(c, patterns)
-	if err != nil {
+	if ids, err = db.RegexpSearch(c, patterns); err != nil {
 		goto end
 	}
 
 	for i, p := range patterns {
 		log.Printf("Regexp pattern: %v\n", p)
-		dataMap, err = db.BatchGet(c, ids[i])
-		if err != nil {
+		if dataMap, err = db.BatchGet(c, ids[i]); err != nil {
 			goto end
 		}
 
@@ -393,11 +372,11 @@ end:
 
 func ExampleDB_Info() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	infoMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -407,8 +386,7 @@ func ExampleDB_Info() {
 	log.Printf("\n")
 	log.Printf("--------- Info() Test Begin --------\n")
 
-	infoMap, err = db.Info(c)
-	if err != nil {
+	if infoMap, err = db.Info(c); err != nil {
 		goto end
 	}
 	log.Printf("Info():\n")
@@ -423,13 +401,13 @@ end:
 
 func ExampleDB_Delete() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Frank Wang"*`
 	data := ""
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -439,8 +417,7 @@ func ExampleDB_Delete() {
 	log.Printf("\n")
 	log.Printf("--------- Delete() Test Begin --------\n")
 
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
@@ -448,8 +425,7 @@ func ExampleDB_Delete() {
 		goto end
 	}
 
-	data, err = db.Get(c, ids[0])
-	if err != nil {
+	if data, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
@@ -457,14 +433,12 @@ func ExampleDB_Delete() {
 	log.Printf("id: %v, data: %v\n", ids[0], data)
 
 	// Delete
-	err = db.Delete(c, ids[0])
-	if err != nil {
+	if err = db.Delete(c, ids[0]); err != nil {
 		goto end
 	}
 
 	// Search again after record deleted.
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
@@ -478,13 +452,13 @@ end:
 
 func ExampleDB_BatchDelete() {
 	var err error
+	var c redis.Conn
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"*"*`
 	dataMap := make(map[string]string)
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
@@ -494,13 +468,11 @@ func ExampleDB_BatchDelete() {
 	log.Printf("\n")
 	log.Printf("--------- BatchDelete() Test Begin --------\n")
 	// Get all records.
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
-	dataMap, err = db.BatchGet(c, ids)
-	if err != nil {
+	if dataMap, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
@@ -510,14 +482,12 @@ func ExampleDB_BatchDelete() {
 	}
 
 	// Delete all record.
-	err = db.BatchDelete(c, ids)
-	if err != nil {
+	if err = db.BatchDelete(c, ids); err != nil {
 		goto end
 	}
 
 	// Search again after record deleted.
-	ids, err = db.Search(c, pattern)
-	if err != nil {
+	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
 
