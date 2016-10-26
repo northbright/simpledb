@@ -356,31 +356,6 @@ end:
 	return exists, nil
 }
 
-// Get returns record data by given record id.
-func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
-	var nID uint64
-	recordHashKey := ""
-
-	nID, err = strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		goto end
-	}
-
-	recordHashKey = db.GenRecordHashKey(nID)
-	data, err = redis.String(c.Do("HGET", recordHashKey, nID))
-	if err != nil {
-		goto end
-	}
-
-end:
-	if err != nil {
-		debugPrintf("Get() error: %v\n", err)
-		return "", err
-	}
-
-	return data, nil
-}
-
 // BatchGet returns multiple record data by given record ids.
 //
 //     Params
@@ -388,18 +363,72 @@ end:
 //     Return:
 //         dataMap: key: id, value: record data.
 func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, err error) {
+	var nID uint64
 	dataMap = make(map[string]string)
-	data := ""
+	recordHashKey := ""
+	alreadySendMULTI := false
+	dataArr := []string{}
+
+	if len(ids) == 0 {
+		err = fmt.Errorf("Empty id array")
+		goto end
+	}
+
+	// Prepare piplined transaction.
+	c.Send("MULTI")
+	alreadySendMULTI = true
 
 	for _, id := range ids {
-		data, err = db.Get(c, id)
+		nID, err = strconv.ParseUint(id, 10, 64)
 		if err != nil {
-			debugPrintf("BatchGet(): db.Get() error: %v\n", err)
-			return dataMap, err
+			goto end
 		}
-		dataMap[id] = data
+
+		recordHashKey = db.GenRecordHashKey(nID)
+		c.Send("HGET", recordHashKey, nID)
 	}
+
+	// Do piplined transaction.
+	if dataArr, err = redis.Strings(c.Do("EXEC")); err != nil {
+		goto end
+	}
+
+	if len(dataArr) != len(ids) {
+		err = fmt.Errorf("returned data array length != id array length")
+		goto end
+	}
+
+	for i, id := range ids {
+		dataMap[id] = dataArr[i]
+	}
+
+	debugPrintf("BatchGet() ok. dataMap: %v, ids: %v\n", dataMap, ids)
+end:
+	if err != nil {
+		if alreadySendMULTI {
+			c.Do("DISCARD")
+		}
+		debugPrintf("BatchCreate() error: %v\n", err)
+		return map[string]string{}, err
+	}
+
 	return dataMap, nil
+}
+
+// Get returns record data by given record id.
+func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
+	dataMap := make(map[string]string)
+
+	if dataMap, err = db.BatchGet(c, []string{id}); err != nil {
+		goto end
+	}
+end:
+	if err != nil {
+		debugPrintf("Get() error: %v\n", err)
+		return "", err
+	}
+
+	return dataMap[id], nil
 }
 
 // Update updates the record by given id and new data.
