@@ -744,6 +744,33 @@ end:
 	return ids, nil
 }
 
+// Count returns record count stored in Redis.
+func (db *DB) Count(c redis.Conn) (count uint64, err error) {
+	var maxBucketID, n uint64
+
+	if maxBucketID, err = db.GetMaxBucketID(c); err != nil {
+		goto end
+	}
+
+	for i := maxBucketID; i >= 1; i-- {
+		recordHashKey := fmt.Sprintf("%v/bucket/%v", db.name, i)
+		if n, err = redis.Uint64(c.Do("HLEN", recordHashKey)); err != nil {
+			goto end
+		}
+
+		if n > 0 {
+			count += n
+		}
+	}
+end:
+	if err != nil {
+		debugPrintf("Count() error: %v\n", err)
+		return 0, err
+	}
+
+	return count, nil
+}
+
 // Info returns the information of current DB.
 //
 //     Returns:

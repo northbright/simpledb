@@ -370,6 +370,32 @@ end:
 	// Output:
 }
 
+func ExampleDB_Count() {
+	var err error
+	var c redis.Conn
+	var db *simpledb.DB
+	var count uint64
+
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	db, _ = simpledb.Open(c, "student")
+
+	log.Printf("\n")
+	log.Printf("--------- Count() Test Begin --------\n")
+
+	if count, err = db.Count(c); err != nil {
+		goto end
+	}
+	log.Printf("Record count: %v\n", count)
+end:
+	log.Printf("--------- Count() Test End --------\n")
+	// Output:
+
+}
+
 func ExampleDB_Info() {
 	var err error
 	var c redis.Conn
