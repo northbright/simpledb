@@ -18,8 +18,6 @@ const (
 var (
 	// DEBUG represents debug mode. It'll output debug messages if it's true.
 	DEBUG = true
-	// DefRedisHashMaxZiplistEntries is Redis "hash-max-ziplist-entries" value.
-	DefRedisHashMaxZiplistEntries uint64 = 512
 )
 
 // DB represents a record collection stored in Redis server.
