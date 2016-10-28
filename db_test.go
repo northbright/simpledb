@@ -12,6 +12,7 @@ func ExampleDB_Create() {
 	var err error
 	var c redis.Conn
 	var db *simpledb.DB
+	var record = simpledb.Record{}
 	id := ""
 	data := `{"name":"Bob Smith","tel":"13500135000"}`
 
@@ -29,11 +30,11 @@ func ExampleDB_Create() {
 		goto end
 	}
 
-	if data, err = db.Get(c, id); err != nil {
+	if record, err = db.Get(c, id); err != nil {
 		goto end
 	}
 
-	log.Printf("Result: id: %v, data: %v\n", id, data)
+	log.Printf("Result: id: %v, data: %v\n", record.ID, record.Data)
 end:
 	log.Printf("--------- Create() Test End --------\n")
 	// Output:
@@ -43,7 +44,6 @@ func ExampleDB_BatchCreate() {
 	var err error
 	var c redis.Conn
 	var db *simpledb.DB
-	dataMap := make(map[string]string)
 	ids := []string{}
 	data := []string{
 		`{"name":"Frank Xu","tel":"13700137000"}`,
@@ -54,6 +54,7 @@ func ExampleDB_BatchCreate() {
 		`{"name":"王小宝","tel":"13800138003"}`,
 		`{"name":"王宝多","tel":"13700137077"}`,
 	}
+	records := []simpledb.Record{}
 
 	log.Printf("\n")
 	log.Printf("--------- BatchCreate() Test Begin --------\n")
@@ -70,12 +71,12 @@ func ExampleDB_BatchCreate() {
 	}
 
 	log.Printf("Result:\n")
-	if dataMap, err = db.BatchGet(c, ids); err != nil {
+	if records, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
-	for id, data := range dataMap {
-		log.Printf("id: %v, data: %v\n", id, data)
+	for _, r := range records {
+		log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 	}
 
 end:
@@ -117,7 +118,7 @@ func ExampleDB_Get() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Bob*"*`
-	data := ""
+	record := simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -136,12 +137,12 @@ func ExampleDB_Get() {
 		goto end
 	}
 
-	if data, err = db.Get(c, ids[0]); err != nil {
+	if record, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	log.Printf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("id: %v, data: %v\n", record.ID, record.Data)
 
 end:
 	log.Printf("--------- Get() Test End --------\n")
@@ -154,7 +155,7 @@ func ExampleDB_BatchGet() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"王*"*`
-	dataMap := make(map[string]string)
+	records := []simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -168,13 +169,13 @@ func ExampleDB_BatchGet() {
 	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
-	if dataMap, err = db.BatchGet(c, ids); err != nil {
+	if records, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	for id, data := range dataMap {
-		log.Printf("id: %v, data: %v\n", id, data)
+	for _, record := range records {
+		log.Printf("id: %v, data: %v\n", record.ID, record.Data)
 	}
 
 end:
@@ -188,7 +189,7 @@ func ExampleDB_Update() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Bob*"*`
-	data := ""
+	record := simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -207,24 +208,24 @@ func ExampleDB_Update() {
 		goto end
 	}
 
-	if data, err = db.Get(c, ids[0]); err != nil {
+	if record, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	log.Printf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("id: %v, data: %v\n", record.ID, record.Data)
 
 	// Change phone number from 135xxx to 138xxx.
-	data = strings.Replace(data, "135", "158", -1)
-	if err = db.Update(c, ids[0], data); err != nil {
+	record.Data = strings.Replace(record.Data, "135", "158", -1)
+	if err = db.Update(c, record); err != nil {
 		goto end
 	}
 
 	log.Printf("Change phone number from 135xxx to 158xxx.")
-	if data, err = db.Get(c, ids[0]); err != nil {
+	if record, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
-	log.Printf("Updated. id: %v, data: %v\n", ids[0], data)
+	log.Printf("Updated. id: %v, data: %v\n", record.ID, record.Data)
 
 end:
 	log.Printf("--------- Update() Test End --------\n")
@@ -237,8 +238,8 @@ func ExampleDB_BatchUpdate() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"tel":"138*"*`
-	dataMap := make(map[string]string)
-	newDataMap := make(map[string]string)
+	oldRecords := []simpledb.Record{}
+	newRecords := []simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -253,27 +254,27 @@ func ExampleDB_BatchUpdate() {
 	if ids, err = db.Search(c, pattern); err != nil {
 		goto end
 	}
-	if dataMap, err = db.BatchGet(c, ids); err != nil {
+	if oldRecords, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
 	log.Printf("Result:\n")
-	for id, data := range dataMap {
-		log.Printf("id: %v, data: %v\n", id, data)
-		newDataMap[id] = strings.Replace(data, "138", "186", -1)
+	for _, r := range oldRecords {
+		log.Printf("id: %v, data: %v\n", r.ID, r.Data)
+		newRecords = append(newRecords, simpledb.Record{ID: r.ID, Data: strings.Replace(r.Data, "138", "186", -1)})
 	}
 
-	if err = db.BatchUpdate(c, newDataMap); err != nil {
+	if err = db.BatchUpdate(c, newRecords); err != nil {
 		goto end
 	}
 
-	if dataMap, err = db.BatchGet(c, ids); err != nil {
+	if newRecords, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
 	log.Printf("Batch update phone number from 138xxx to 186xxx.")
-	for id, data := range dataMap {
-		log.Printf("id: %v, data: %v\n", id, data)
+	for _, r := range newRecords {
+		log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 	}
 end:
 	log.Printf("--------- BatchUpdate() Test End --------\n")
@@ -292,7 +293,7 @@ func ExampleDB_Search() {
 		`*"name":"Frank*"*"tel":"13700137000"*`,
 	}
 
-	dataMap := make(map[string]string)
+	records := []simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -310,13 +311,13 @@ func ExampleDB_Search() {
 			goto end
 		}
 
-		if dataMap, err = db.BatchGet(c, ids); err != nil {
+		if records, err = db.BatchGet(c, ids); err != nil {
 			goto end
 		}
 
 		log.Printf("Result:\n")
-		for k, v := range dataMap {
-			log.Printf("id: %v, data: %v\n", k, v)
+		for _, r := range records {
+			log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 		}
 	}
 
@@ -338,7 +339,7 @@ func ExampleDB_RegexpSearch() {
 		`"Frank.*".*"tel":"13700137000"`,
 	}
 
-	dataMap := make(map[string]string)
+	records := []simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -356,13 +357,13 @@ func ExampleDB_RegexpSearch() {
 
 	for i, p := range patterns {
 		log.Printf("Regexp pattern: %v\n", p)
-		if dataMap, err = db.BatchGet(c, ids[i]); err != nil {
+		if records, err = db.BatchGet(c, ids[i]); err != nil {
 			goto end
 		}
 
 		log.Printf("Result:\n")
-		for k, v := range dataMap {
-			log.Printf("id: %v, data: %v\n", k, v)
+		for _, r := range records {
+			log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 		}
 	}
 end:
@@ -431,7 +432,7 @@ func ExampleDB_Delete() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"Frank Wang"*`
-	data := ""
+	record := simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -451,12 +452,12 @@ func ExampleDB_Delete() {
 		goto end
 	}
 
-	if data, err = db.Get(c, ids[0]); err != nil {
+	if record, err = db.Get(c, ids[0]); err != nil {
 		goto end
 	}
 
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	log.Printf("id: %v, data: %v\n", ids[0], data)
+	log.Printf("id: %v, data: %v\n", record.ID, record.Data)
 
 	// Delete
 	if err = db.Delete(c, ids[0]); err != nil {
@@ -482,7 +483,7 @@ func ExampleDB_BatchDelete() {
 	var db *simpledb.DB
 	ids := []string{}
 	pattern := `*"name":"*"*`
-	dataMap := make(map[string]string)
+	records := []simpledb.Record{}
 
 	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
@@ -498,13 +499,13 @@ func ExampleDB_BatchDelete() {
 		goto end
 	}
 
-	if dataMap, err = db.BatchGet(c, ids); err != nil {
+	if records, err = db.BatchGet(c, ids); err != nil {
 		goto end
 	}
 
 	log.Printf("Search pattern: %v, Result:\n", pattern)
-	for id, data := range dataMap {
-		log.Printf("id: %v, data: %v\n", id, data)
+	for _, r := range records {
+		log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 	}
 
 	// Delete all record.

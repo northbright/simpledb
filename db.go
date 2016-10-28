@@ -34,6 +34,14 @@ type DB struct {
 	indexHashKeyScanPattern string
 }
 
+// Record contains record ID and data string.
+type Record struct {
+	// ID is record ID.
+	ID string
+	// data is record dta.
+	Data string
+}
+
 // GenRedisHashMaxZiplistEntriesKey Generates the "hash-max-ziplist-entries" key for DB.
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
 	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.name)
@@ -345,10 +353,9 @@ end:
 //     Params
 //         ids: record id array.
 //     Return:
-//         dataMap: key: id, value: record data.
-func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, err error) {
+//         records: record array.
+func (db *DB) BatchGet(c redis.Conn, ids []string) (records []Record, err error) {
 	var nID uint64
-	dataMap = make(map[string]string)
 	recordHashKey := ""
 	alreadySendMULTI := false
 	dataArr := []string{}
@@ -382,50 +389,48 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (dataMap map[string]string, e
 	}
 
 	for i, id := range ids {
-		dataMap[id] = dataArr[i]
+		records = append(records, Record{ID: id, Data: dataArr[i]})
 	}
 
-	debugPrintf("BatchGet() ok. dataMap: %v, ids: %v\n", dataMap, ids)
+	debugPrintf("BatchGet() ok. records: %v\n", records)
 end:
 	if err != nil {
 		if alreadySendMULTI {
 			c.Do("DISCARD")
 		}
 		debugPrintf("BatchCreate() error: %v\n", err)
-		return map[string]string{}, err
+		return []Record{}, err
 	}
 
-	return dataMap, nil
+	return records, nil
 }
 
 // Get returns record data by given record id.
-func (db *DB) Get(c redis.Conn, id string) (data string, err error) {
-	dataMap := make(map[string]string)
+func (db *DB) Get(c redis.Conn, id string) (r Record, err error) {
+	records := []Record{}
 
-	if dataMap, err = db.BatchGet(c, []string{id}); err != nil {
+	if records, err = db.BatchGet(c, []string{id}); err != nil {
 		goto end
 	}
 end:
 	if err != nil {
 		debugPrintf("Get() error: %v\n", err)
-		return "", err
+		return Record{}, err
 	}
 
-	return dataMap[id], nil
+	return records[0], nil
 }
 
 // Update updates the record by given id and new data.
-func (db *DB) Update(c redis.Conn, id, data string) error {
-	dataMap := make(map[string]string)
-	dataMap[id] = data
-	return db.BatchUpdate(c, dataMap)
+func (db *DB) Update(c redis.Conn, record Record) error {
+	return db.BatchUpdate(c, []Record{record})
 }
 
 // BatchUpdate updates multiple records by given ids and new data.
 //
 //     Params:
-//         dataMap: key: id, value: new record data.
-func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
+//         records: record array to be updated.
+func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 	type updateInfo struct {
 		data              string
 		recordHashKey     string
@@ -436,56 +441,57 @@ func (db *DB) BatchUpdate(c redis.Conn, dataMap map[string]string) (err error) {
 		newIndexHashField string
 	}
 
-	var recordHashKey, oldIndexHashKey, newIndexHashKey, oldData string
+	var oldRecord = Record{}
+	var recordHashKey, oldIndexHashKey, newIndexHashKey string
 	var nID, recordHashField uint64
 	var ret interface{}
 	exists := false
 	updateInfoMap := make(map[uint64]updateInfo)
 	alreadySendMULTI := false
 
-	// Check and input dataArr
-	for id, data := range dataMap {
-		if exists, err = db.IDExists(c, id); err != nil {
+	// Check records.
+	for _, r := range records {
+		if exists, err = db.IDExists(c, r.ID); err != nil {
 			goto end
 		}
 
 		if !exists {
-			err = fmt.Errorf("Id: %v does not exist.", id)
+			err = fmt.Errorf("Id: %v does not exist.", r.ID)
 			goto end
 		}
 
-		if oldData, err = db.Get(c, id); err != nil {
+		if oldRecord, err = db.Get(c, r.ID); err != nil {
 			goto end
 		}
 
-		if nID, err = strconv.ParseUint(id, 10, 64); err != nil {
+		if nID, err = strconv.ParseUint(r.ID, 10, 64); err != nil {
 			goto end
 		}
 
 		recordHashKey = db.GenRecordHashKey(nID)
 		recordHashField = nID
-		oldIndexHashKey = db.GenIndexHashKey(oldData)
-		newIndexHashKey = db.GenIndexHashKey(data)
+		oldIndexHashKey = db.GenIndexHashKey(oldRecord.Data)
+		newIndexHashKey = db.GenIndexHashKey(r.Data)
 
-		// Check if new data equals to old data: no need to update.
-		if !bytes.Equal([]byte(data), []byte(oldData)) {
+		// Check if new data equals to old Data: no need to update.
+		if !bytes.Equal([]byte(r.Data), []byte(oldRecord.Data)) {
 			updateInfoMap[recordHashField] = updateInfo{
-				data:              data,
+				data:              r.Data,
 				recordHashKey:     recordHashKey,
 				recordHashField:   recordHashField,
 				oldIndexHashKey:   oldIndexHashKey,
-				oldIndexHashField: oldData,
+				oldIndexHashField: oldRecord.Data,
 				newIndexHashKey:   newIndexHashKey,
-				newIndexHashField: data}
+				newIndexHashField: r.Data}
 		}
 
 		// Check if data already exists in db(may be with another id).
-		if exists, err = db.Exists(c, data); err != nil {
+		if exists, err = db.Exists(c, r.Data); err != nil {
 			goto end
 		}
 
 		if exists {
-			err = fmt.Errorf("Data already exists in db: %v.", data)
+			err = fmt.Errorf("Data already exists in db: %v.", r.Data)
 			goto end
 		}
 	}
@@ -532,7 +538,8 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		indexHashField  string
 	}
 
-	var recordHashKey, indexHashKey, data string
+	var record = Record{}
+	var recordHashKey, indexHashKey string
 	var nID, recordHashField uint64
 	var ret interface{}
 	delInfoMap := make(map[uint64]delInfo)
@@ -550,7 +557,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 			goto end
 		}
 
-		if data, err = db.Get(c, id); err != nil {
+		if record, err = db.Get(c, id); err != nil {
 			goto end
 		}
 
@@ -560,13 +567,13 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 
 		recordHashKey = db.GenRecordHashKey(nID)
 		recordHashField = nID
-		indexHashKey = db.GenIndexHashKey(data)
+		indexHashKey = db.GenIndexHashKey(record.Data)
 
 		delInfoMap[recordHashField] = delInfo{
 			recordHashKey:   recordHashKey,
 			recordHashField: recordHashField,
 			indexHashKey:    indexHashKey,
-			indexHashField:  data,
+			indexHashField:  record.Data,
 		}
 	}
 
