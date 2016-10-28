@@ -9,19 +9,18 @@ import (
 
 func ExampleGetRedisHashMaxZiplistEntries() {
 	var err error
+	var c redis.Conn
 	var redisHashMaxZiplistEntries uint64 = 0
 
 	log.Printf("\n")
 	log.Printf("--------- GetRedisHashMaxZiplistEntries() Test Begin --------\n")
 
-	c, err := redis.Dial("tcp", ":6379")
-	if err != nil {
+	if c, err = redis.Dial("tcp", ":6379"); err != nil {
 		goto end
 	}
 	defer c.Close()
 
-	redisHashMaxZiplistEntries, err = simpledb.GetRedisHashMaxZiplistEntries(c)
-	if err != nil {
+	if redisHashMaxZiplistEntries, err = simpledb.GetRedisHashMaxZiplistEntries(c); err != nil {
 		goto end
 	}
 

@@ -9,13 +9,12 @@ import (
 
 // GetRedisHashMaxZiplistEntries gets the Redis "hash-max-ziplist-entries" config value.
 func GetRedisHashMaxZiplistEntries(c redis.Conn) (redisHashMaxZiplistEntries uint64, err error) {
-	config, err := redishelper.GetConfig(c)
-	if err != nil {
+	config := map[string]string{}
+	if config, err = redishelper.GetConfig(c); err != nil {
 		goto end
 	}
 
-	redisHashMaxZiplistEntries, err = strconv.ParseUint(config["hash-max-ziplist-entries"], 10, 64)
-	if err != nil {
+	if redisHashMaxZiplistEntries, err = strconv.ParseUint(config["hash-max-ziplist-entries"], 10, 64); err != nil {
 		goto end
 	}
 
