@@ -25,7 +25,7 @@ var (
 // DB represents a record collection stored in Redis server.
 type DB struct {
 	// Database name.
-	Name string
+	name string
 	// Redis "hash-max-ziplist-entries" value. It'll be initialize only once in Open().
 	redisHashMaxZiplistEntries uint64
 	// Estimated index bucket number.
@@ -36,12 +36,12 @@ type DB struct {
 
 // GenRedisHashMaxZiplistEntriesKey Generates the "hash-max-ziplist-entries" key for DB.
 func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
-	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.Name)
+	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.name)
 }
 
 // Open returns an DB instance by given database name.
 func Open(c redis.Conn, name string) (db *DB, err error) {
-	db = &DB{Name: name}
+	db = &DB{name: name}
 	exists := false
 	k := db.GenRedisHashMaxZiplistEntriesKey()
 
@@ -72,7 +72,7 @@ func Open(c redis.Conn, name string) (db *DB, err error) {
 	// Initialize estimated index bucket number.
 	db.estIndexBucketNum = EstimatedMaxRecordNum / uint64(float64(db.redisHashMaxZiplistEntries)*0.9)
 	// Initialize index hash key scan pattern.
-	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.Name)
+	db.indexHashKeyScanPattern = fmt.Sprintf("%v/idx/bucket/*", db.name)
 end:
 	if err != nil {
 		debugPrintf("Open(c, %v) error: %v\n", name, err)
@@ -93,7 +93,7 @@ func (db *DB) ComputeBucketID(id uint64) uint64 {
 
 // GenMaxIDKey generates key of max record id.
 func (db *DB) GenMaxIDKey() (maxIDKey string) {
-	return fmt.Sprintf("%v/maxid", db.Name)
+	return fmt.Sprintf("%v/maxid", db.name)
 }
 
 // GetMaxID gets max record id.
@@ -124,7 +124,7 @@ end:
 
 // GenMaxBucketIDKey generates the key of max record bucket id.
 func (db *DB) GenMaxBucketIDKey() (maxBucketIDKey string) {
-	return fmt.Sprintf("%v/maxbucketid", db.Name)
+	return fmt.Sprintf("%v/maxbucketid", db.name)
 }
 
 // GetMaxBucketID gets the max record bucket id.
@@ -157,14 +157,14 @@ end:
 // GenRecordHashKey generates the record hash(bucket) key by given record id.
 func (db *DB) GenRecordHashKey(id uint64) string {
 	bucketID := db.ComputeBucketID(id)
-	return fmt.Sprintf("%v/bucket/%v", db.Name, bucketID)
+	return fmt.Sprintf("%v/bucket/%v", db.name, bucketID)
 }
 
 // GenIndexHashKey generates the index hash(bucket) key by given record data.
 func (db *DB) GenIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
 	bucketID := uint64(checkSum) % db.estIndexBucketNum
-	return fmt.Sprintf("%v/idx/bucket/%v", db.Name, bucketID)
+	return fmt.Sprintf("%v/idx/bucket/%v", db.name, bucketID)
 }
 
 // Exists checks if given record exists in database.
@@ -775,7 +775,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 
 	// Check record hashes' encoding
 	for i := maxBucketID; i >= 1; i-- {
-		recordHashKey = fmt.Sprintf("%v/bucket/%v", db.Name, i)
+		recordHashKey = fmt.Sprintf("%v/bucket/%v", db.name, i)
 		if n, err = redis.Uint64(c.Do("HLEN", recordHashKey)); err != nil {
 			goto end
 		}
@@ -851,7 +851,7 @@ func (db *DB) Info(c redis.Conn) (infoMap map[string]string, err error) {
 		allIndexBucketEncodingAreZipList = false
 	}
 
-	infoMap["db.Name"] = db.Name
+	infoMap["db.name"] = db.name
 	infoMap["db.redisHashMaxZiplistEntries"] = strconv.FormatUint(db.redisHashMaxZiplistEntries, 10)
 	infoMap["record bucket num"] = strconv.FormatUint(recordBucketNum, 10)
 	infoMap["record num"] = strconv.FormatUint(recordNum, 10)
