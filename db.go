@@ -473,7 +473,7 @@ func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 
 		// Check if new data equals to old Data: no need to update.
 		if !bytes.Equal([]byte(r.Data), []byte(oldRecord.Data)) {
-			updateInfoMap[recordHashField] = updateInfo{
+			updateInfoMap[nID] = updateInfo{
 				data:              r.Data,
 				recordHashKey:     recordHashKey,
 				recordHashField:   recordHashField,
