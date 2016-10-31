@@ -396,7 +396,7 @@ end:
 		if alreadySendMULTI {
 			c.Do("DISCARD")
 		}
-		debugPrintf("BatchCreate() error: %v\n", err)
+		debugPrintf("BatchGet() error: %v\n", err)
 		return []Record{}, err
 	}
 
