@@ -606,7 +606,9 @@ end:
 // Search scans all indexes(record data) in database and use the pattern of Redis "SCAN" command to find records which match the pattern.
 //
 //     Params:
-//         pattern: pattern of Redis "SCAN" command. Ex: `{"name":"Frank*"}*`
+//         pattern: pattern of Redis "SCAN" command.
+//         It'll return all record ID if pattern is empty.
+//         Ex: `{"name":"Frank*"}*`
 //     Returns:
 //         ids: matched record ids.
 func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
@@ -616,11 +618,6 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 	keys := []string{}
 	items := []string{}
 	ids = []string{}
-
-	if len(pattern) == 0 {
-		err = fmt.Errorf("Empty pattern.")
-		goto end
-	}
 
 	cursor = 0
 	for {
@@ -635,8 +632,15 @@ func (db *DB) Search(c redis.Conn, pattern string) (ids []string, err error) {
 		for _, k := range keys {
 			subCursor = 0
 			for {
-				if v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1024)); err != nil {
-					goto end
+				if len(pattern) != 0 {
+					if v, err = redis.Values(c.Do("HSCAN", k, subCursor, "match", pattern, "COUNT", 1024)); err != nil {
+						goto end
+					}
+				} else {
+					if v, err = redis.Values(c.Do("HSCAN", k, subCursor, "COUNT", 1024)); err != nil {
+						goto end
+					}
+
 				}
 
 				if v, err = redis.Scan(v, &subCursor, &items); err != nil {

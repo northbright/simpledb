@@ -291,6 +291,8 @@ func ExampleDB_Search() {
 		`*"name":"王*宝"*`,
 		// Search name matches Frank* and tel matches 13700137000.
 		`*"name":"Frank*"*"tel":"13700137000"*`,
+		// Empty pattern: return all record ID.
+		``,
 	}
 
 	records := []simpledb.Record{}
@@ -319,6 +321,8 @@ func ExampleDB_Search() {
 		for _, r := range records {
 			log.Printf("id: %v, data: %v\n", r.ID, r.Data)
 		}
+
+		log.Printf("\n")
 	}
 
 end:
