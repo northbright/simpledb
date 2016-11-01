@@ -1,7 +1,6 @@
 package simpledb
 
 import (
-	"bytes"
 	"fmt"
 	"hash/crc32"
 	"regexp"
@@ -430,21 +429,21 @@ func (db *DB) Update(c redis.Conn, record Record) error {
 //         records: record array to be updated.
 func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 	type updateInfo struct {
-		data              string
 		recordHashKey     string
 		recordHashField   uint64
+		recordHashValue   string
 		oldIndexHashKey   string
 		oldIndexHashField string
 		newIndexHashKey   string
 		newIndexHashField string
+		newIndexHashValue uint64
 	}
 
 	var oldRecord = Record{}
-	var recordHashKey, oldIndexHashKey, newIndexHashKey string
-	var nID, recordHashField uint64
+	var nID uint64
 	var ret interface{}
 	exists := false
-	updateInfoMap := make(map[uint64]updateInfo)
+	updateInfos := []updateInfo{}
 	alreadySendMULTI := false
 
 	// Check records.
@@ -458,6 +457,12 @@ func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 			goto end
 		}
 
+		// Check if data already exists in db(may be with another id).
+		if exists, err = db.Exists(c, r.Data); err != nil {
+			err = fmt.Errorf("Data already exists in db: %v.", r.Data)
+			goto end
+		}
+
 		if oldRecord, err = db.Get(c, r.ID); err != nil {
 			goto end
 		}
@@ -466,41 +471,26 @@ func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 			goto end
 		}
 
-		recordHashKey = db.GenRecordHashKey(nID)
-		recordHashField = nID
-		oldIndexHashKey = db.GenIndexHashKey(oldRecord.Data)
-		newIndexHashKey = db.GenIndexHashKey(r.Data)
-
-		// Check if new data equals to old Data: no need to update.
-		if !bytes.Equal([]byte(r.Data), []byte(oldRecord.Data)) {
-			updateInfoMap[nID] = updateInfo{
-				data:              r.Data,
-				recordHashKey:     recordHashKey,
-				recordHashField:   recordHashField,
-				oldIndexHashKey:   oldIndexHashKey,
-				oldIndexHashField: oldRecord.Data,
-				newIndexHashKey:   newIndexHashKey,
-				newIndexHashField: r.Data}
+		info := updateInfo{
+			recordHashKey:     db.GenRecordHashKey(nID),
+			recordHashField:   nID,
+			recordHashValue:   r.Data,
+			oldIndexHashKey:   db.GenIndexHashKey(oldRecord.Data),
+			oldIndexHashField: oldRecord.Data,
+			newIndexHashKey:   db.GenIndexHashKey(r.Data),
+			newIndexHashField: r.Data,
+			newIndexHashValue: nID,
 		}
-
-		// Check if data already exists in db(may be with another id).
-		if exists, err = db.Exists(c, r.Data); err != nil {
-			goto end
-		}
-
-		if exists {
-			err = fmt.Errorf("Data already exists in db: %v.", r.Data)
-			goto end
-		}
+		updateInfos = append(updateInfos, info)
 	}
 
 	// Prepare pipelined transaction.
 	c.Send("MULTI")
 	alreadySendMULTI = true
 
-	for nID, info := range updateInfoMap {
-		c.Send("HSET", info.recordHashKey, info.recordHashField, info.data)
-		c.Send("HSET", info.newIndexHashKey, info.newIndexHashField, nID)
+	for _, info := range updateInfos {
+		c.Send("HSET", info.recordHashKey, info.recordHashField, info.recordHashValue)
+		c.Send("HSET", info.newIndexHashKey, info.newIndexHashField, info.newIndexHashValue)
 		c.Send("HDEL", info.oldIndexHashKey, info.oldIndexHashField)
 	}
 
