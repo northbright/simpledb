@@ -527,10 +527,9 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 	}
 
 	var record = Record{}
-	var recordHashKey, indexHashKey string
-	var nID, recordHashField uint64
+	var nID uint64
 	var ret interface{}
-	delInfoMap := make(map[uint64]delInfo)
+	delInfos := []delInfo{}
 	exists := false
 	alreadySendMULTI := false
 
@@ -553,23 +552,20 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 			goto end
 		}
 
-		recordHashKey = db.GenRecordHashKey(nID)
-		recordHashField = nID
-		indexHashKey = db.GenIndexHashKey(record.Data)
-
-		delInfoMap[recordHashField] = delInfo{
-			recordHashKey:   recordHashKey,
-			recordHashField: recordHashField,
-			indexHashKey:    indexHashKey,
+		info := delInfo{
+			recordHashKey:   db.GenRecordHashKey(nID),
+			recordHashField: nID,
+			indexHashKey:    db.GenIndexHashKey(record.Data),
 			indexHashField:  record.Data,
 		}
+		delInfos = append(delInfos, info)
 	}
 
 	// Prepare pipelined transaction.
 	c.Send("MULTI")
 	alreadySendMULTI = true
 
-	for _, info := range delInfoMap {
+	for _, info := range delInfos {
 		c.Send("HDEL", info.recordHashKey, info.recordHashField)
 		c.Send("HDEL", info.indexHashKey, info.indexHashField)
 	}
