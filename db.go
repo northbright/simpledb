@@ -159,8 +159,8 @@ end:
 	return maxBucketID, nil
 }
 
-// GenRecordHashKey generates the record hash(bucket) key by given record id.
-func (db *DB) GenRecordHashKey(id uint64) string {
+// genRecordHashKey generates the record hash(bucket) key by given record id.
+func (db *DB) genRecordHashKey(id uint64) string {
 	bucketID := db.computeBucketID(id)
 	return fmt.Sprintf("%v/bucket/%v", db.name, bucketID)
 }
@@ -285,7 +285,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		bucketID = db.computeBucketID(nID)
 
 		// Generate hash key for record and index.
-		recordHashKey = db.GenRecordHashKey(nID)
+		recordHashKey = db.genRecordHashKey(nID)
 		indexHashKey = db.GenIndexHashKey(data)
 
 		// Create record and index.
@@ -331,7 +331,7 @@ func (db *DB) IDExists(c redis.Conn, id string) (exists bool, err error) {
 		goto end
 	}
 
-	recordHashKey = db.GenRecordHashKey(nID)
+	recordHashKey = db.genRecordHashKey(nID)
 	if exists, err = redis.Bool(c.Do("HEXISTS", recordHashKey, nID)); err != nil {
 		goto end
 	}
@@ -371,7 +371,7 @@ func (db *DB) BatchGet(c redis.Conn, ids []string) (records []Record, err error)
 			goto end
 		}
 
-		recordHashKey = db.GenRecordHashKey(nID)
+		recordHashKey = db.genRecordHashKey(nID)
 		c.Send("HGET", recordHashKey, nID)
 	}
 
@@ -472,7 +472,7 @@ func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 		}
 
 		info := updateInfo{
-			recordHashKey:     db.GenRecordHashKey(nID),
+			recordHashKey:     db.genRecordHashKey(nID),
 			recordHashField:   nID,
 			recordHashValue:   r.Data,
 			oldIndexHashKey:   db.GenIndexHashKey(oldRecord.Data),
@@ -553,7 +553,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		}
 
 		info := delInfo{
-			recordHashKey:   db.GenRecordHashKey(nID),
+			recordHashKey:   db.genRecordHashKey(nID),
 			recordHashField: nID,
 			indexHashKey:    db.GenIndexHashKey(record.Data),
 			indexHashField:  record.Data,
