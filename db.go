@@ -39,8 +39,8 @@ type Record struct {
 	Data string
 }
 
-// GenRedisHashMaxZiplistEntriesKey Generates the "hash-max-ziplist-entries" key for DB.
-func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
+// genRedisHashMaxZiplistEntriesKey Generates the "hash-max-ziplist-entries" key for DB.
+func (db *DB) genRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey string) {
 	return fmt.Sprintf("%v/redis-hash-max-ziplist-entries", db.name)
 }
 
@@ -48,7 +48,7 @@ func (db *DB) GenRedisHashMaxZiplistEntriesKey() (redisHashMaxZiplistEntriesKey 
 func Open(c redis.Conn, name string) (db *DB, err error) {
 	db = &DB{name: name}
 	exists := false
-	k := db.GenRedisHashMaxZiplistEntriesKey()
+	k := db.genRedisHashMaxZiplistEntriesKey()
 
 	if len(name) == 0 {
 		err = fmt.Errorf("Empty db name.")
