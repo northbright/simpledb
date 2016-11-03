@@ -165,8 +165,8 @@ func (db *DB) genRecordHashKey(id uint64) string {
 	return fmt.Sprintf("%v/bucket/%v", db.name, bucketID)
 }
 
-// GenIndexHashKey generates the index hash(bucket) key by given record data.
-func (db *DB) GenIndexHashKey(data string) string {
+// genIndexHashKey generates the index hash(bucket) key by given record data.
+func (db *DB) genIndexHashKey(data string) string {
 	checkSum := crc32.ChecksumIEEE([]byte(data))
 	bucketID := uint64(checkSum) % db.estIndexBucketNum
 	return fmt.Sprintf("%v/idx/bucket/%v", db.name, bucketID)
@@ -178,7 +178,7 @@ func (db *DB) Exists(c redis.Conn, data string) (exists bool, err error) {
 	indexHashKey := ""
 	indexHashField := data
 
-	indexHashKey = db.GenIndexHashKey(data)
+	indexHashKey = db.genIndexHashKey(data)
 	if exists, err = redis.Bool(c.Do("HEXISTS", indexHashKey, indexHashField)); err != nil {
 		goto end
 	}
@@ -286,7 +286,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 
 		// Generate hash key for record and index.
 		recordHashKey = db.genRecordHashKey(nID)
-		indexHashKey = db.GenIndexHashKey(data)
+		indexHashKey = db.genIndexHashKey(data)
 
 		// Create record and index.
 		recordHashField = nID
@@ -475,9 +475,9 @@ func (db *DB) BatchUpdate(c redis.Conn, records []Record) (err error) {
 			recordHashKey:     db.genRecordHashKey(nID),
 			recordHashField:   nID,
 			recordHashValue:   r.Data,
-			oldIndexHashKey:   db.GenIndexHashKey(oldRecord.Data),
+			oldIndexHashKey:   db.genIndexHashKey(oldRecord.Data),
 			oldIndexHashField: oldRecord.Data,
-			newIndexHashKey:   db.GenIndexHashKey(r.Data),
+			newIndexHashKey:   db.genIndexHashKey(r.Data),
 			newIndexHashField: r.Data,
 			newIndexHashValue: nID,
 		}
@@ -555,7 +555,7 @@ func (db *DB) BatchDelete(c redis.Conn, ids []string) (err error) {
 		info := delInfo{
 			recordHashKey:   db.genRecordHashKey(nID),
 			recordHashField: nID,
-			indexHashKey:    db.GenIndexHashKey(record.Data),
+			indexHashKey:    db.genIndexHashKey(record.Data),
 			indexHashField:  record.Data,
 		}
 		delInfos = append(delInfos, info)
