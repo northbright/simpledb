@@ -96,14 +96,14 @@ func (db *DB) computeBucketID(id uint64) uint64 {
 	return id/db.redisHashMaxZiplistEntries + 1
 }
 
-// GenMaxIDKey generates key of max record id.
-func (db *DB) GenMaxIDKey() (maxIDKey string) {
+// genMaxIDKey generates key of max record id.
+func (db *DB) genMaxIDKey() (maxIDKey string) {
 	return fmt.Sprintf("%v/maxid", db.name)
 }
 
 // GetMaxID gets max record id.
 func (db *DB) GetMaxID(c redis.Conn) (maxID uint64, err error) {
-	k := db.GenMaxIDKey()
+	k := db.genMaxIDKey()
 	exists := false
 	if exists, err = redis.Bool(c.Do("EXISTS", k)); err != nil {
 		goto end
@@ -258,7 +258,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 	}
 
 	// Get max id key.
-	maxIDKey = db.GenMaxIDKey()
+	maxIDKey = db.genMaxIDKey()
 
 	// Get max bucket id key.
 	if maxBucketIDKey = db.GenMaxBucketIDKey(); err != nil {
