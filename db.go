@@ -91,8 +91,8 @@ end:
 func (db *DB) Close() {
 }
 
-// ComputeBucketID returns the record bucket id by given record id.
-func (db *DB) ComputeBucketID(id uint64) uint64 {
+// computeBucketID returns the record bucket id by given record id.
+func (db *DB) computeBucketID(id uint64) uint64 {
 	return id/db.redisHashMaxZiplistEntries + 1
 }
 
@@ -161,7 +161,7 @@ end:
 
 // GenRecordHashKey generates the record hash(bucket) key by given record id.
 func (db *DB) GenRecordHashKey(id uint64) string {
-	bucketID := db.ComputeBucketID(id)
+	bucketID := db.computeBucketID(id)
 	return fmt.Sprintf("%v/bucket/%v", db.name, bucketID)
 }
 
@@ -282,7 +282,7 @@ func (db *DB) BatchCreate(c redis.Conn, dataArr []string) (ids []string, err err
 		ids = append(ids, id)
 
 		// Compute bucket id.
-		bucketID = db.ComputeBucketID(nID)
+		bucketID = db.computeBucketID(nID)
 
 		// Generate hash key for record and index.
 		recordHashKey = db.GenRecordHashKey(nID)
