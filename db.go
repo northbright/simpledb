@@ -696,7 +696,7 @@ end:
 //     Params:
 //         patterns: regexp pattern array. Ex: {`{"name":"Frank.+"}`,`{"tel":"136\d{8}"}`}
 //     Returns:
-//         ids: matched record ids map. key: pattern, value: matched record ids.
+//         ids: matched record ids arrays. Each array contains result IDs match the pattern.
 func (db *DB) RegexpSearch(patterns []string) (ids [][]string, err error) {
 	var cursor, subCursor uint64
 	var l int
