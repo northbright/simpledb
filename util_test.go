@@ -33,3 +33,25 @@ end:
 	log.Printf("--------- GetRedisHashMaxZiplistEntries() Test End --------\n")
 	// Output:
 }
+
+func ExampleGetRedisConn() {
+	var err error
+	var c redis.Conn
+
+	log.Printf("\n")
+	log.Printf("--------- GetRedisConn() Test Begin --------\n")
+
+	if c, err = simpledb.GetRedisConn(":6379", ""); err != nil {
+		goto end
+	}
+	defer c.Close()
+
+	log.Printf("OK.\n")
+end:
+	if err != nil {
+		log.Printf("error: %v\n", err)
+	}
+
+	log.Printf("--------- GetRedisConn() Test End --------\n")
+	// Output:
+}

@@ -55,24 +55,8 @@ func Open(redisAddr, redisPassword, name string) (db *DB, err error) {
 	db = &DB{redisAddr: redisAddr, redisPassword: redisPassword, name: name}
 	exists := false
 	k := db.genRedisHashMaxZiplistEntriesKey()
-	pongStr := ""
 
-	if db.c, err = redis.Dial("tcp", db.redisAddr); err != nil {
-		goto end
-	}
-
-	if len(db.redisPassword) != 0 {
-		if _, err = db.c.Do("AUTH", db.redisPassword); err != nil {
-			goto end
-		}
-	}
-
-	if pongStr, err = redis.String(db.c.Do("PING")); err != nil {
-		goto end
-	}
-
-	if pongStr != "PONG" {
-		err = fmt.Errorf("Redis PING != PONG(%v)", pongStr)
+	if db.c, err = GetRedisConn(redisAddr, redisPassword); err != nil {
 		goto end
 	}
 
