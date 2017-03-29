@@ -8,8 +8,10 @@ go:
   - 1.7
   - tip
 
+services:
+  - redis-server
+
 before_install:
-  - ./install-and-run-redis.sh
 
 install:
   - go get github.com/garyburd/redigo/redis
